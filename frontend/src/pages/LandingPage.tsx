@@ -7,7 +7,7 @@ import CTASection from "../components/landing/CTASection"
 
 export default function LandingPage() {
   return (
-    <div style={{ fontFamily: "Roboto, sans-serif", backgroundColor: "#FFFFFF", minWidth: "1280px" }}>
+    <div style={{ fontFamily: "Roboto, sans-serif", backgroundColor: "#FFFFFF", width: "100%", overflowX: "hidden" }}>
       <Navbar />
       <HeroSection />
       <QuoteSection

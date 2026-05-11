@@ -1,11 +1,13 @@
-const khuStyle: React.CSSProperties = {
+import type { CSSProperties } from 'react'
+
+const khuStyle: CSSProperties = {
   color: "#9A001F",
   fontFamily: '"AvantGarde LT Bold"',
   fontWeight: 400,
   letterSpacing: "-1px",
 }
 
-const nnectStyle: React.CSSProperties = {
+const nnectStyle: CSSProperties = {
   color: "#524949",
   fontFamily: '"AvantGarde Bk BT"',
   fontWeight: 400,
