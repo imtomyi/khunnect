@@ -10,29 +10,30 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as LoginRouteImport } from './routes/login'
-import { Route as _routesRouteImport } from './routes/__routes'
+import { Route as IndexRouteImport } from './routes/index'
 
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
   path: '/login',
   getParentRoute: () => rootRouteImport,
 } as any)
-const _routesRoute = _routesRouteImport.update({
-  id: '/__routes',
+const IndexRoute = IndexRouteImport.update({
+  id: '/',
+  path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
 
 export interface FileRoutesByFullPath {
-  '/': typeof _routesRoute
+  '/': typeof IndexRoute
   '/login': typeof LoginRoute
 }
 export interface FileRoutesByTo {
-  '/': typeof _routesRoute
+  '/': typeof IndexRoute
   '/login': typeof LoginRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
-  '/__routes': typeof _routesRoute
+  '/': typeof IndexRoute
   '/login': typeof LoginRoute
 }
 export interface FileRouteTypes {
@@ -40,11 +41,11 @@ export interface FileRouteTypes {
   fullPaths: '/' | '/login'
   fileRoutesByTo: FileRoutesByTo
   to: '/' | '/login'
-  id: '__root__' | '/__routes' | '/login'
+  id: '__root__' | '/' | '/login'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
-  _routesRoute: typeof _routesRoute
+  IndexRoute: typeof IndexRoute
   LoginRoute: typeof LoginRoute
 }
 
@@ -57,18 +58,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LoginRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/__routes': {
-      id: '/__routes'
-      path: ''
+    '/': {
+      id: '/'
+      path: '/'
       fullPath: '/'
-      preLoaderRoute: typeof _routesRouteImport
+      preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
   }
 }
 
 const rootRouteChildren: RootRouteChildren = {
-  _routesRoute: _routesRoute,
+  IndexRoute: IndexRoute,
   LoginRoute: LoginRoute,
 }
 export const routeTree = rootRouteImport
