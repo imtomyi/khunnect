@@ -1,3 +1,17 @@
+@font-face {
+  font-family: 'AvantGarde LT Bold';
+  src: url('/AvantGardeLT-Bold.otf') format('opentype');
+  font-weight: 400;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: 'AvantGarde Bk BT';
+  src: url('/avantgarde-bk-bt-2/AVGARDN_2.TTF') format('truetype');
+  font-weight: 400;
+  font-style: normal;
+}
+
 :root {
   --text: #6b6375;
   --text-h: #08060d;
