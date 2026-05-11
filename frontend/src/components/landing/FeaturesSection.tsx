@@ -92,7 +92,7 @@ export default function FeaturesSection() {
           <div style={{ marginTop: "auto", backgroundColor: "#FFFFFF", borderRadius: "16px", padding: "20px", display: "flex", justifyContent: "space-around", alignItems: "center", boxShadow: "0 2px 8px rgba(0,0,0,0.04)" }}>
             {["전공기초", "전공필수", "전공선택"].map((label, i) => {
               const pcts = [75, 50, 60]
-              const r = 40, circ = 2 * Math.PI * r
+              const r = 40
               const sw = 8
               const size = (r + sw) * 2
               const cx = size / 2, cy = size / 2
