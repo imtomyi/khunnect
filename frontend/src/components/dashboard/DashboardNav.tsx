@@ -31,14 +31,14 @@ export default function DashboardNav() {
         {/* 중앙 메뉴 — 본문과 동일한 max-w 정렬 */}
         <div className="max-w-[1280px] mx-auto w-full px-6 flex items-center justify-between">
           <div className="flex items-center gap-[50px] ml-[100px]">
-            {[
-              { label: '커리큘럼 계산기', href: '/curriculum' },
-              { label: '선배와의 연결',   href: '/explore'    },
-              { label: '커리어 로드맵',   href: '/roadmap'    },
-            ].map(({ label, href }) => (
-              <a
+            {([
+              { label: '커리큘럼 계산기', to: '/curriculum' },
+              { label: '선배와의 연결',   to: '/explore'    },
+              { label: '커리어 로드맵',   to: '/roadmap'    },
+            ] as const).map(({ label, to }) => (
+              <Link
                 key={label}
-                href={href}
+                to={to}
                 style={{
                   textDecoration: 'none',
                   fontFamily: 'var(--font-roboto)',
@@ -50,7 +50,7 @@ export default function DashboardNav() {
                 }}
               >
                 {label}
-              </a>
+              </Link>
             ))}
           </div>
         </div>

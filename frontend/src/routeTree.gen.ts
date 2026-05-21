@@ -9,13 +9,21 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as RoadmapRouteImport } from './routes/roadmap'
 import { Route as RegisterRouteImport } from './routes/register'
 import { Route as MyRouteImport } from './routes/my'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as HomeRouteImport } from './routes/home'
 import { Route as ExploreRouteImport } from './routes/explore'
+import { Route as CurriculumRouteImport } from './routes/curriculum'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as SeniorsSeniorIdRouteImport } from './routes/seniors.$seniorId'
 
+const RoadmapRoute = RoadmapRouteImport.update({
+  id: '/roadmap',
+  path: '/roadmap',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const RegisterRoute = RegisterRouteImport.update({
   id: '/register',
   path: '/register',
@@ -41,56 +49,113 @@ const ExploreRoute = ExploreRouteImport.update({
   path: '/explore',
   getParentRoute: () => rootRouteImport,
 } as any)
+const CurriculumRoute = CurriculumRouteImport.update({
+  id: '/curriculum',
+  path: '/curriculum',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const SeniorsSeniorIdRoute = SeniorsSeniorIdRouteImport.update({
+  id: '/seniors/$seniorId',
+  path: '/seniors/$seniorId',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/curriculum': typeof CurriculumRoute
   '/explore': typeof ExploreRoute
   '/home': typeof HomeRoute
   '/login': typeof LoginRoute
   '/my': typeof MyRoute
   '/register': typeof RegisterRoute
+  '/roadmap': typeof RoadmapRoute
+  '/seniors/$seniorId': typeof SeniorsSeniorIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/curriculum': typeof CurriculumRoute
   '/explore': typeof ExploreRoute
   '/home': typeof HomeRoute
   '/login': typeof LoginRoute
   '/my': typeof MyRoute
   '/register': typeof RegisterRoute
+  '/roadmap': typeof RoadmapRoute
+  '/seniors/$seniorId': typeof SeniorsSeniorIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/curriculum': typeof CurriculumRoute
   '/explore': typeof ExploreRoute
   '/home': typeof HomeRoute
   '/login': typeof LoginRoute
   '/my': typeof MyRoute
   '/register': typeof RegisterRoute
+  '/roadmap': typeof RoadmapRoute
+  '/seniors/$seniorId': typeof SeniorsSeniorIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/explore' | '/home' | '/login' | '/my' | '/register'
+  fullPaths:
+    | '/'
+    | '/curriculum'
+    | '/explore'
+    | '/home'
+    | '/login'
+    | '/my'
+    | '/register'
+    | '/roadmap'
+    | '/seniors/$seniorId'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/explore' | '/home' | '/login' | '/my' | '/register'
-  id: '__root__' | '/' | '/explore' | '/home' | '/login' | '/my' | '/register'
+  to:
+    | '/'
+    | '/curriculum'
+    | '/explore'
+    | '/home'
+    | '/login'
+    | '/my'
+    | '/register'
+    | '/roadmap'
+    | '/seniors/$seniorId'
+  id:
+    | '__root__'
+    | '/'
+    | '/curriculum'
+    | '/explore'
+    | '/home'
+    | '/login'
+    | '/my'
+    | '/register'
+    | '/roadmap'
+    | '/seniors/$seniorId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  CurriculumRoute: typeof CurriculumRoute
   ExploreRoute: typeof ExploreRoute
   HomeRoute: typeof HomeRoute
   LoginRoute: typeof LoginRoute
   MyRoute: typeof MyRoute
   RegisterRoute: typeof RegisterRoute
+  RoadmapRoute: typeof RoadmapRoute
+  SeniorsSeniorIdRoute: typeof SeniorsSeniorIdRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/roadmap': {
+      id: '/roadmap'
+      path: '/roadmap'
+      fullPath: '/roadmap'
+      preLoaderRoute: typeof RoadmapRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/register': {
       id: '/register'
       path: '/register'
@@ -126,6 +191,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ExploreRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/curriculum': {
+      id: '/curriculum'
+      path: '/curriculum'
+      fullPath: '/curriculum'
+      preLoaderRoute: typeof CurriculumRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
@@ -133,16 +205,26 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/seniors/$seniorId': {
+      id: '/seniors/$seniorId'
+      path: '/seniors/$seniorId'
+      fullPath: '/seniors/$seniorId'
+      preLoaderRoute: typeof SeniorsSeniorIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  CurriculumRoute: CurriculumRoute,
   ExploreRoute: ExploreRoute,
   HomeRoute: HomeRoute,
   LoginRoute: LoginRoute,
   MyRoute: MyRoute,
   RegisterRoute: RegisterRoute,
+  RoadmapRoute: RoadmapRoute,
+  SeniorsSeniorIdRoute: SeniorsSeniorIdRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
