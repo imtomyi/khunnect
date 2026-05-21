@@ -53,12 +53,12 @@ export default function LoginPage() {
     const { error } = await supabase.auth.signInWithPassword({ email, password })
 
     if (error) {
-      setErrors({ email: error.message })
+      setErrors({ password: '이메일 또는 비밀번호가 올바르지 않습니다' })
       setLoading(false)
       return
     }
 
-    navigate({ to: '/' })
+    navigate({ to: '/home' })
   }
 
   const ec = (field: string) => errors[field] ? ' error' : ''

@@ -3,7 +3,7 @@ import type { CSSProperties } from 'react'
 import { useNavigate, Link } from '@tanstack/react-router'
 import { supabase } from '../lib/supabase'
 import { BRAND } from '../lib/constants'
-import { useDepartments, useTracks } from '../hooks/useDepartments'
+import { useColleges, useDepartments } from '../hooks/useDepartments'
 import AuthLayout from '../components/auth/AuthLayout'
 
 const labelStyle: CSSProperties = {
@@ -33,8 +33,8 @@ export default function RegisterPage() {
   const [password, setPassword] = useState('')
   const [passwordConfirm, setPasswordConfirm] = useState('')
   const [studentId, setStudentId] = useState('')
+  const [collegeId, setCollegeId] = useState<number | null>(null)
   const [departmentId, setDepartmentId] = useState<number | null>(null)
-  const [trackId, setTrackId] = useState<number | null>(null)
   const [role, setRole] = useState<'student' | 'alumni'>('student')
   const [graduationYear, setGraduationYear] = useState('')
   const [errors, setErrors] = useState<Record<string, string>>({})
@@ -45,8 +45,8 @@ export default function RegisterPage() {
   const clearFieldError = (field: string) =>
     setErrors((prev) => { const next = { ...prev }; delete next[field]; return next })
 
-  const { data: departments } = useDepartments(1)
-  const { data: tracks } = useTracks(departmentId)
+  const { data: colleges } = useColleges()
+  const { data: departments } = useDepartments(collegeId)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -60,6 +60,8 @@ export default function RegisterPage() {
       newErrors.passwordConfirm = '비밀번호가 일치하지 않습니다'
     if (studentId.length < 4 || isNaN(parseInt(studentId.substring(0, 4))))
       newErrors.studentId = '학번을 올바르게 입력해주세요'
+    if (!collegeId)
+      newErrors.college = '단과대학을 선택해주세요'
     if (!departmentId)
       newErrors.department = '학과를 선택해주세요'
 
@@ -92,7 +94,7 @@ export default function RegisterPage() {
     const { error: majorError } = await supabase.from('user_majors').insert({
       user_id: authData.user.id,
       department_id: departmentId,
-      track_id: trackId,
+      track_id: null,
       type: 'major',
       admission_year: admissionYear,
       graduation_year: role === 'alumni' ? parseInt(graduationYear) : null,
@@ -103,7 +105,7 @@ export default function RegisterPage() {
       return
     }
 
-    navigate({ to: '/' })
+    navigate({ to: '/home' })
   }
 
   const ec = (field: string) => errors[field] ? ' error' : ''
@@ -163,18 +165,40 @@ export default function RegisterPage() {
           {errors.passwordConfirm && <span style={errorTextStyle}>{errors.passwordConfirm}</span>}
         </div>
 
+        {/* 학번 */}
+        <div style={fieldStyle}>
+          <label style={labelStyle}>학번 (Student ID)</label>
+          <input
+            className={`auth-input${ec('studentId')}`}
+            type="text"
+            placeholder="20240001"
+            maxLength={10}
+            value={studentId}
+            onChange={(e) => { setStudentId(e.target.value); clearFieldError('studentId') }}
+          />
+          {errors.studentId && <span style={errorTextStyle}>{errors.studentId}</span>}
+        </div>
+
+        {/* 단과대학 + 학과 */}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
           <div style={fieldStyle}>
-            <label style={labelStyle}>학번 (Student ID)</label>
-            <input
-              className={`auth-input${ec('studentId')}`}
-              type="text"
-              placeholder="20240001"
-              maxLength={10}
-              value={studentId}
-              onChange={(e) => { setStudentId(e.target.value); clearFieldError('studentId') }}
-            />
-            {errors.studentId && <span style={errorTextStyle}>{errors.studentId}</span>}
+            <label style={labelStyle}>단과대학 (College)</label>
+            <select
+              className={`auth-input${ec('college')}`}
+              value={collegeId ?? ''}
+              onChange={(e) => {
+                setCollegeId(e.target.value ? Number(e.target.value) : null)
+                setDepartmentId(null)
+                clearFieldError('college')
+              }}
+              style={{ color: collegeId ? '#1F1A1A' : '#C9A0A0', cursor: 'pointer' }}
+            >
+              <option value="" disabled>선택</option>
+              {colleges?.map((c) => (
+                <option key={c.id} value={c.id} style={{ color: '#1F1A1A' }}>{c.name}</option>
+              ))}
+            </select>
+            {errors.college && <span style={errorTextStyle}>{errors.college}</span>}
           </div>
           <div style={fieldStyle}>
             <label style={labelStyle}>학과 (Department)</label>
@@ -183,12 +207,12 @@ export default function RegisterPage() {
               value={departmentId ?? ''}
               onChange={(e) => {
                 setDepartmentId(e.target.value ? Number(e.target.value) : null)
-                setTrackId(null)
                 clearFieldError('department')
               }}
               style={{ color: departmentId ? '#1F1A1A' : '#C9A0A0', cursor: 'pointer' }}
+              disabled={!collegeId}
             >
-              <option value="" disabled>선택</option>
+              <option value="" disabled>{collegeId ? '선택' : '대학 먼저 선택'}</option>
               {departments?.map((d) => (
                 <option key={d.id} value={d.id} style={{ color: '#1F1A1A' }}>{d.name}</option>
               ))}
@@ -197,22 +221,6 @@ export default function RegisterPage() {
           </div>
         </div>
 
-        {tracks && tracks.length > 0 && (
-          <div style={fieldStyle}>
-            <label style={labelStyle}>트랙 (Track, 선택사항)</label>
-            <select
-              className="auth-input"
-              value={trackId ?? ''}
-              onChange={(e) => setTrackId(e.target.value ? Number(e.target.value) : null)}
-              style={{ color: trackId ? '#1F1A1A' : '#C9A0A0', cursor: 'pointer' }}
-            >
-              <option value="">선택 안함</option>
-              {tracks.map((t) => (
-                <option key={t.id} value={t.id} style={{ color: '#1F1A1A' }}>{t.name}</option>
-              ))}
-            </select>
-          </div>
-        )}
 
         <div style={fieldStyle}>
           <label style={labelStyle}>재학/졸업 여부 (Status)</label>

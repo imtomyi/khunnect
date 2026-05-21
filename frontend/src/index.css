@@ -14,8 +14,28 @@
   font-style: normal;
 }
 
+@font-face {
+  font-family: 'AvantGarde Bk BT';
+  src: url('/avantgarde-bk-bt-2/AVGARDD_2.TTF') format('truetype');
+  font-weight: 700;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: 'AvantGarde Bk BT';
+  src: url('/avantgarde-bk-bt-2/AVGARDDO_2.TTF') format('truetype');
+  font-weight: 700;
+  font-style: oblique;
+}
+
+:root {
+  --font-roboto: 'Roboto', system-ui, sans-serif;
+}
+
 body {
   @apply font-sans antialiased;
+  font-family: var(--font-roboto);
+  min-width: 1280px;
 }
 
 #root {
