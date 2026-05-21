@@ -1,3 +1,5 @@
+@import "tailwindcss";
+
 @font-face {
   font-family: 'AvantGarde LT Bold';
   src: url('/AvantGardeLT-Bold.otf') format('opentype');
@@ -12,55 +14,46 @@
   font-style: normal;
 }
 
-* {
-  box-sizing: border-box;
-}
-
 body {
-  margin: 0;
-  padding: 0;
-  font-family: 'Roboto', system-ui, sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+  @apply font-sans antialiased;
 }
 
 #root {
-  width: 100%;
-  min-height: 100vh;
+  @apply w-full min-h-screen;
 }
 
 /* ── Auth form inputs ─────────────────────────────── */
 .auth-input {
-  width: 100%;
-  padding: 10px 0;
-  font-size: 14px;
+  @apply w-full py-[10px] text-sm outline-none bg-transparent text-[#1F1A1A] appearance-none;
   border: none;
-  border-bottom: 1.5px solid #E5E7EB;
-  outline: none;
-  background: transparent;
-  color: #1F1A1A;
+  border-bottom: 1.5px solid #E6BDBB;
   font-family: 'Roboto', system-ui, sans-serif;
   transition: border-bottom-color 0.2s ease;
-  appearance: none;
-  -webkit-appearance: none;
 }
 
 .auth-input::placeholder {
-  color: #C9A0A0;
+  color: #E6BDBB99;
 }
 
-.auth-input:focus {
+.auth-input:focus,
+.auth-input:not(:placeholder-shown) {
   border-bottom-color: #9A001F;
 }
 
-.auth-input.error {
-  border-bottom-color: #DC2626;
-}
-
+.auth-input.error,
 .auth-input.error:focus {
   border-bottom-color: #DC2626;
 }
 
-.auth-select option[value=""] {
-  color: #C9A0A0;
+/* ── Auth button ─────────────────────────────────── */
+.auth-btn {
+  @apply bg-transparent text-[#9A001F] transition-all duration-150 ease-in-out;
+}
+
+.auth-btn:hover {
+  @apply bg-[#9A001F] text-white;
+}
+
+.auth-btn:disabled:hover {
+  @apply bg-transparent text-[#C9A0A0];
 }

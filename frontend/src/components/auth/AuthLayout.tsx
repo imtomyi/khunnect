@@ -27,7 +27,6 @@ export default function AuthLayout({ title, subtitle, children }: AuthLayoutProp
           flexDirection: 'column',
           gap: '32px',
         }}>
-          {/* 헤더: 로고 + 타이틀 + 서브타이틀 */}
           <div style={{
             display: 'flex',
             flexDirection: 'column',
@@ -61,7 +60,7 @@ export default function AuthLayout({ title, subtitle, children }: AuthLayoutProp
         </div>
       </div>
 
-      {/* 오른쪽: 그라디언트 배경 */}
+      {/* 오른쪽: 그라디언트 */}
       <div style={{
         flex: '0 0 50%',
         background: 'linear-gradient(135deg, #FEE2E2 0%, #FECACA 50%, #FCA5A5 100%)',

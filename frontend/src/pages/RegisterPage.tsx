@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import type { CSSProperties } from 'react'
 import { useNavigate, Link } from '@tanstack/react-router'
 import { supabase } from '../lib/supabase'
 import { BRAND } from '../lib/constants'
@@ -7,8 +8,8 @@ import AuthLayout from '../components/auth/AuthLayout'
 
 const labelStyle: React.CSSProperties = {
   fontSize: '12px',
-  fontWeight: 500,
-  color: '#78716C',
+  fontWeight: 400,
+  color: '#5C3F3F',
   marginBottom: '4px',
   display: 'block',
   letterSpacing: '0.02em',
@@ -17,6 +18,12 @@ const labelStyle: React.CSSProperties = {
 const fieldStyle: React.CSSProperties = {
   display: 'flex',
   flexDirection: 'column',
+}
+
+const errorTextStyle: React.CSSProperties = {
+  fontSize: '11px',
+  color: '#DC2626',
+  marginTop: '4px',
 }
 
 export default function RegisterPage() {
@@ -44,9 +51,9 @@ export default function RegisterPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
-    // 필드별 유효성 검사
     const newErrors: Record<string, string> = {}
-
+    if (!email) newErrors.email = '이메일을 입력해주세요'
+    if (!name) newErrors.name = '이름을 입력해주세요'
     if (password.length < 6)
       newErrors.password = '비밀번호는 6자 이상이어야 합니다'
     if (password !== passwordConfirm)
@@ -99,102 +106,97 @@ export default function RegisterPage() {
     navigate({ to: '/' })
   }
 
+  const ec = (field: string) => errors[field] ? ' error' : ''
+
   return (
     <AuthLayout
       title="Khunnect에 오신 것을 환영합니다"
       subtitle="당신의 학업 여정을 스마트하게 설계하세요"
     >
-      <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '22px' }}>
+      <form onSubmit={handleSubmit} noValidate style={{ display: 'flex', flexDirection: 'column', gap: '22px' }}>
 
-        {/* 이메일 */}
         <div style={fieldStyle}>
           <label style={labelStyle}>이메일 (Email)</label>
           <input
-            className="auth-input"
+            className={`auth-input${ec('email')}`}
             type="email"
             placeholder="example@khu.ac.kr"
             value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            required
+            onChange={(e) => { setEmail(e.target.value); clearFieldError('email') }}
           />
+          {errors.email && <span style={errorTextStyle}>{errors.email}</span>}
         </div>
 
-        {/* 이름 */}
         <div style={fieldStyle}>
           <label style={labelStyle}>이름 (Name)</label>
           <input
-            className="auth-input"
+            className={`auth-input${ec('name')}`}
             type="text"
             placeholder="홍길동"
             value={name}
-            onChange={(e) => setName(e.target.value)}
-            required
+            onChange={(e) => { setName(e.target.value); clearFieldError('name') }}
           />
+          {errors.name && <span style={errorTextStyle}>{errors.name}</span>}
         </div>
 
-        {/* 비밀번호 */}
         <div style={fieldStyle}>
           <label style={labelStyle}>비밀번호 (Password)</label>
           <input
-            className="auth-input"
+            className={`auth-input${ec('password')}`}
             type="password"
             placeholder="••••••••"
             value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            required
+            onChange={(e) => { setPassword(e.target.value); clearFieldError('password') }}
           />
+          {errors.password && <span style={errorTextStyle}>{errors.password}</span>}
         </div>
 
-        {/* 비밀번호 확인 */}
         <div style={fieldStyle}>
           <label style={labelStyle}>비밀번호 확인 (Verify Password)</label>
           <input
-            className="auth-input"
+            className={`auth-input${ec('passwordConfirm')}`}
             type="password"
             placeholder="••••••••"
             value={passwordConfirm}
-            onChange={(e) => setPasswordConfirm(e.target.value)}
-            required
+            onChange={(e) => { setPasswordConfirm(e.target.value); clearFieldError('passwordConfirm') }}
           />
+          {errors.passwordConfirm && <span style={errorTextStyle}>{errors.passwordConfirm}</span>}
         </div>
 
-        {/* 학번 + 학과 (2열 그리드) */}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
           <div style={fieldStyle}>
             <label style={labelStyle}>학번 (Student ID)</label>
             <input
-              className="auth-input"
+              className={`auth-input${ec('studentId')}`}
               type="text"
               placeholder="20240001"
               maxLength={10}
               value={studentId}
-              onChange={(e) => setStudentId(e.target.value)}
-              required
+              onChange={(e) => { setStudentId(e.target.value); clearFieldError('studentId') }}
             />
+            {errors.studentId && <span style={errorTextStyle}>{errors.studentId}</span>}
           </div>
           <div style={fieldStyle}>
             <label style={labelStyle}>학과 (Department)</label>
             <select
-              className="auth-input"
+              className={`auth-input${ec('department')}`}
               value={departmentId ?? ''}
               onChange={(e) => {
                 setDepartmentId(e.target.value ? Number(e.target.value) : null)
                 setTrackId(null)
+                clearFieldError('department')
               }}
-              required
               style={{ color: departmentId ? '#1F1A1A' : '#C9A0A0', cursor: 'pointer' }}
             >
               <option value="" disabled>선택</option>
               {departments?.map((d) => (
-                <option key={d.id} value={d.id} style={{ color: '#1F1A1A' }}>
-                  {d.name}
-                </option>
+                <option key={d.id} value={d.id} style={{ color: '#1F1A1A' }}>{d.name}</option>
               ))}
             </select>
+            {errors.department && <span style={errorTextStyle}>{errors.department}</span>}
           </div>
         </div>
 
-        {/* 트랙 (조건부) */}
         {tracks && tracks.length > 0 && (
           <div style={fieldStyle}>
             <label style={labelStyle}>트랙 (Track, 선택사항)</label>
@@ -204,17 +206,14 @@ export default function RegisterPage() {
               onChange={(e) => setTrackId(e.target.value ? Number(e.target.value) : null)}
               style={{ color: trackId ? '#1F1A1A' : '#C9A0A0', cursor: 'pointer' }}
             >
-              <option value="" style={{ color: '#C9A0A0' }}>선택 안함</option>
+              <option value="">선택 안함</option>
               {tracks.map((t) => (
-                <option key={t.id} value={t.id} style={{ color: '#1F1A1A' }}>
-                  {t.name}
-                </option>
+                <option key={t.id} value={t.id} style={{ color: '#1F1A1A' }}>{t.name}</option>
               ))}
             </select>
           </div>
         )}
 
-        {/* 재학 / 졸업 토글 */}
         <div style={fieldStyle}>
           <label style={labelStyle}>재학/졸업 여부 (Status)</label>
           <div style={{
@@ -238,8 +237,8 @@ export default function RegisterPage() {
                   backgroundColor: role === r ? '#FFFFFF' : 'transparent',
                   cursor: 'pointer',
                   fontSize: '13px',
-                  fontWeight: role === r ? 600 : 400,
-                  color: role === r ? BRAND : '#A8998A',
+                  fontWeight: role === r ? 400 : 400,
+                  color: role === r ? BRAND : '#5C3F3F',
                   boxShadow: role === r ? '0 1px 3px rgba(154,0,31,0.12)' : 'none',
                   transition: 'all 0.15s ease',
                   fontFamily: 'Roboto, system-ui, sans-serif',
@@ -251,7 +250,6 @@ export default function RegisterPage() {
           </div>
         </div>
 
-        {/* 졸업년도 (졸업생일 때만) */}
         {role === 'alumni' && (
           <div style={fieldStyle}>
             <label style={labelStyle}>졸업년도 (Graduation Year)</label>
@@ -263,47 +261,35 @@ export default function RegisterPage() {
               max={2030}
               value={graduationYear}
               onChange={(e) => setGraduationYear(e.target.value)}
-              required
             />
           </div>
         )}
 
-        {/* 에러 메시지 */}
-        {error && (
-          <p style={{ fontSize: '13px', color: '#DC2626', margin: 0, padding: '8px 12px', backgroundColor: '#FEF2F2', borderRadius: '8px' }}>
-            {error}
-          </p>
-        )}
-
-        {/* 회원가입 버튼 */}
         <button
           type="submit"
+          className="auth-btn"
           disabled={loading}
           style={{
             marginTop: '4px',
             padding: '13px',
             fontSize: '14px',
             fontWeight: 600,
-            color: loading ? '#C9A0A0' : BRAND,
-            backgroundColor: 'transparent',
             border: `1.5px solid ${loading ? '#E5C5CB' : BRAND}`,
             borderRadius: '10px',
             cursor: loading ? 'not-allowed' : 'pointer',
             letterSpacing: '0.02em',
             transition: 'all 0.15s ease',
             fontFamily: 'Roboto, system-ui, sans-serif',
+            boxShadow: loading ? 'none' : '0 4px 12px rgba(154, 0, 31, 0.25)',
+            opacity: loading ? 0.5 : 1,
           }}
         >
           {loading ? '가입 중...' : '회원가입'}
         </button>
 
-        {/* 로그인 링크 */}
         <p style={{ textAlign: 'center', fontSize: '13px', color: '#78716C', margin: 0 }}>
           이미 계정이 있으신가요?{' '}
-          <Link
-            to="/login"
-            style={{ color: BRAND, fontWeight: 600, textDecoration: 'none' }}
-          >
+          <Link to="/login" style={{ color: BRAND, fontWeight: 600, textDecoration: 'none' }}>
             로그인
           </Link>
         </p>

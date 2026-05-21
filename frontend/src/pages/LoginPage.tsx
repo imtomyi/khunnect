@@ -4,22 +4,55 @@ import { supabase } from '../lib/supabase'
 import { BRAND } from '../lib/constants'
 import AuthLayout from '../components/auth/AuthLayout'
 
+const labelStyle: React.CSSProperties = {
+  fontSize: '12px',
+  fontWeight: 500,
+  color: '#78716C',
+  marginBottom: '4px',
+  display: 'block',
+  letterSpacing: '0.02em',
+}
+
+const fieldStyle: React.CSSProperties = {
+  display: 'flex',
+  flexDirection: 'column',
+}
+
+const errorTextStyle: React.CSSProperties = {
+  fontSize: '11px',
+  color: '#DC2626',
+  marginTop: '4px',
+}
+
 export default function LoginPage() {
   const navigate = useNavigate()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
-  const [error, setError] = useState('')
+  const [errors, setErrors] = useState<Record<string, string>>({})
   const [loading, setLoading] = useState(false)
+
+  const clearFieldError = (field: string) =>
+    setErrors((prev) => { const next = { ...prev }; delete next[field]; return next })
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
-    setError('')
+
+    const newErrors: Record<string, string> = {}
+    if (!email) newErrors.email = '이메일을 입력해주세요'
+    if (!password) newErrors.password = '비밀번호를 입력해주세요'
+
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors)
+      return
+    }
+
+    setErrors({})
     setLoading(true)
 
     const { error } = await supabase.auth.signInWithPassword({ email, password })
 
     if (error) {
-      setError(error.message)
+      setErrors({ email: error.message })
       setLoading(false)
       return
     }
@@ -27,36 +60,64 @@ export default function LoginPage() {
     navigate({ to: '/' })
   }
 
-  const inputStyle: React.CSSProperties = {
-    padding: '14px 16px',
-    fontSize: '14px',
-    border: '1px solid #E5E7EB',
-    borderRadius: '12px',
-    outline: 'none',
-    width: '100%',
-  }
+  const ec = (field: string) => errors[field] ? ' error' : ''
 
   return (
     <AuthLayout title="Welcome back" subtitle="로그인하고 선배들의 커리큘럼을 만나보세요">
-      <form onSubmit={handleLogin} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-        <input type="email" placeholder="이메일" value={email} onChange={(e) => setEmail(e.target.value)} required style={inputStyle} />
-        <input type="password" placeholder="비밀번호" value={password} onChange={(e) => setPassword(e.target.value)} required style={inputStyle} />
+      <form onSubmit={handleLogin} noValidate style={{ display: 'flex', flexDirection: 'column', gap: '22px' }}>
 
-        {error && <p style={{ fontSize: '13px', color: '#DC2626', margin: 0 }}>{error}</p>}
+        <div style={fieldStyle}>
+          <label style={labelStyle}>이메일 (Email)</label>
+          <input
+            className={`auth-input${ec('email')}`}
+            type="email"
+            placeholder="example@khu.ac.kr"
+            value={email}
+            onChange={(e) => { setEmail(e.target.value); clearFieldError('email') }}
+          />
+          {errors.email && <span style={errorTextStyle}>{errors.email}</span>}
+        </div>
 
-        <button type="submit" disabled={loading} style={{
-          backgroundColor: BRAND, color: '#FFFFFF', border: 'none',
-          borderRadius: '12px', padding: '14px', fontSize: '15px', fontWeight: 600,
-          cursor: loading ? 'not-allowed' : 'pointer', opacity: loading ? 0.6 : 1, marginTop: '8px',
-        }}>
+        <div style={fieldStyle}>
+          <label style={labelStyle}>비밀번호 (Password)</label>
+          <input
+            className={`auth-input${ec('password')}`}
+            type="password"
+            placeholder="••••••••"
+            value={password}
+            onChange={(e) => { setPassword(e.target.value); clearFieldError('password') }}
+          />
+          {errors.password && <span style={errorTextStyle}>{errors.password}</span>}
+        </div>
+
+        <button
+          type="submit"
+          className="auth-btn"
+          disabled={loading}
+          style={{
+            marginTop: '4px',
+            padding: '13px',
+            fontSize: '14px',
+            fontWeight: 600,
+            border: `1.5px solid ${loading ? '#E5C5CB' : BRAND}`,
+            borderRadius: '10px',
+            cursor: loading ? 'not-allowed' : 'pointer',
+            letterSpacing: '0.02em',
+            transition: 'all 0.15s ease',
+            fontFamily: 'Roboto, system-ui, sans-serif',
+            boxShadow: loading ? 'none' : '0 4px 12px rgba(154, 0, 31, 0.25)',
+            opacity: loading ? 0.5 : 1,
+          }}
+        >
           {loading ? '로그인 중...' : '로그인'}
         </button>
-      </form>
 
-      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', color: '#78716C' }}>
-        <Link to="/register" style={{ color: '#78716C', textDecoration: 'none' }}>비밀번호 찾기</Link>
-        <Link to="/register" style={{ color: BRAND, fontWeight: 600, textDecoration: 'none' }}>회원가입</Link>
-      </div>
+        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', color: '#78716C' }}>
+          <Link to="/register" style={{ color: '#78716C', textDecoration: 'none' }}>비밀번호 찾기</Link>
+          <Link to="/register" style={{ color: BRAND, fontWeight: 600, textDecoration: 'none' }}>회원가입</Link>
+        </div>
+
+      </form>
     </AuthLayout>
   )
 }
