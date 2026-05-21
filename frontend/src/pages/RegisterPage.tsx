@@ -2,108 +2,96 @@ import { useState } from 'react'
 import { useNavigate, Link } from '@tanstack/react-router'
 import { supabase } from '../lib/supabase'
 import { BRAND } from '../lib/constants'
-import { INITIAL_FORM_DATA } from '../types/auth'
-import type { RegisterFormData } from '../types/auth'
-import { useColleges, useDepartments, useTracks } from '../hooks/useDepartments'
+import { useDepartments, useTracks } from '../hooks/useDepartments'
 import AuthLayout from '../components/auth/AuthLayout'
 
-const TOTAL_STEPS = 4
-
-const inputStyle: React.CSSProperties = {
-  padding: '14px 16px',
-  fontSize: '14px',
-  border: '1px solid #E5E7EB',
-  borderRadius: '12px',
-  outline: 'none',
-  width: '100%',
+const labelStyle: React.CSSProperties = {
+  fontSize: '12px',
+  fontWeight: 500,
+  color: '#78716C',
+  marginBottom: '4px',
+  display: 'block',
+  letterSpacing: '0.02em',
 }
 
-const labelStyle: React.CSSProperties = {
-  fontSize: '13px',
-  fontWeight: 500,
-  color: '#1F1A1A',
-  marginBottom: '6px',
-  display: 'block',
+const fieldStyle: React.CSSProperties = {
+  display: 'flex',
+  flexDirection: 'column',
 }
 
 export default function RegisterPage() {
   const navigate = useNavigate()
-  const [step, setStep] = useState(1)
-  const [formData, setFormData] = useState<RegisterFormData>(INITIAL_FORM_DATA)
-  const [error, setError] = useState('')
+  const [email, setEmail] = useState('')
+  const [name, setName] = useState('')
+  const [password, setPassword] = useState('')
+  const [passwordConfirm, setPasswordConfirm] = useState('')
+  const [studentId, setStudentId] = useState('')
+  const [departmentId, setDepartmentId] = useState<number | null>(null)
+  const [trackId, setTrackId] = useState<number | null>(null)
+  const [role, setRole] = useState<'student' | 'alumni'>('student')
+  const [graduationYear, setGraduationYear] = useState('')
+  const [errors, setErrors] = useState<Record<string, string>>({})
   const [loading, setLoading] = useState(false)
-  const [collegeId, setCollegeId] = useState<number | null>(null)
 
-  const { data: colleges } = useColleges()
-  const { data: departments } = useDepartments(collegeId)
-  const { data: tracks } = useTracks(formData.departmentId)
+  const setFieldError = (field: string, msg: string) =>
+    setErrors((prev) => ({ ...prev, [field]: msg }))
+  const clearFieldError = (field: string) =>
+    setErrors((prev) => { const next = { ...prev }; delete next[field]; return next })
 
-  const updateForm = (updates: Partial<RegisterFormData>) => {
-    setFormData(prev => ({ ...prev, ...updates }))
-  }
+  const { data: departments } = useDepartments(1)
+  const { data: tracks } = useTracks(departmentId)
 
-  const handleNext = () => {
-    if (step === 1 && (!formData.email || formData.password.length < 6)) {
-      setError('이메일과 6자 이상의 비밀번호를 입력해주세요')
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+
+    // 필드별 유효성 검사
+    const newErrors: Record<string, string> = {}
+
+    if (password.length < 6)
+      newErrors.password = '비밀번호는 6자 이상이어야 합니다'
+    if (password !== passwordConfirm)
+      newErrors.passwordConfirm = '비밀번호가 일치하지 않습니다'
+    if (studentId.length < 4 || isNaN(parseInt(studentId.substring(0, 4))))
+      newErrors.studentId = '학번을 올바르게 입력해주세요'
+    if (!departmentId)
+      newErrors.department = '학과를 선택해주세요'
+
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors)
       return
     }
-    if (step === 2 && !formData.role) {
-      setError('재학생 또는 졸업생을 선택해주세요')
-      return
-    }
-    if (step === 3 && !formData.departmentId) {
-      setError('학과를 선택해주세요')
-      return
-    }
-    setError('')
-    if (step < TOTAL_STEPS) setStep(step + 1)
-  }
 
-  const handleBack = () => {
-    setError('')
-    if (step > 1) setStep(step - 1)
-  }
-
-  const handleSubmit = async () => {
-    if (!formData.name || !formData.admissionYear) {
-      setError('이름과 입학년도를 입력해주세요')
-      return
-    }
-    setError('')
+    setErrors({})
     setLoading(true)
 
-    const { data: authData, error: authError } = await supabase.auth.signUp({
-      email: formData.email,
-      password: formData.password,
-    })
+    const admissionYear = parseInt(studentId.substring(0, 4))
+
+    const { data: authData, error: authError } = await supabase.auth.signUp({ email, password })
     if (authError || !authData.user) {
-      setError(authError?.message || '회원가입 실패')
+      setFieldError('email', authError?.message || '회원가입에 실패했습니다')
       setLoading(false)
       return
     }
 
     const { error: profileError } = await supabase.from('profiles').insert({
-      id: authData.user.id,
-      email: formData.email,
-      name: formData.name,
-      role: formData.role!,
+      id: authData.user.id, email, name, role,
     })
     if (profileError) {
-      setError(profileError.message)
+      setFieldError('email', profileError.message)
       setLoading(false)
       return
     }
 
     const { error: majorError } = await supabase.from('user_majors').insert({
       user_id: authData.user.id,
-      department_id: formData.departmentId!,
-      track_id: formData.trackId,
+      department_id: departmentId,
+      track_id: trackId,
       type: 'major',
-      admission_year: formData.admissionYear!,
-      graduation_year: formData.graduationYear,
+      admission_year: admissionYear,
+      graduation_year: role === 'alumni' ? parseInt(graduationYear) : null,
     })
     if (majorError) {
-      setError(majorError.message)
+      setFieldError('department', majorError.message)
       setLoading(false)
       return
     }
@@ -112,130 +100,214 @@ export default function RegisterPage() {
   }
 
   return (
-    <AuthLayout title="Khunnect에 오신 것을 환영합니다" subtitle="당신의 학업 여정을 스마트하게 설계하세요">
-      {/* Step indicator */}
-      <div style={{ display: 'flex', gap: '8px' }}>
-        {[1, 2, 3, 4].map(s => (
-          <div key={s} style={{
-            flex: 1, height: '4px', borderRadius: '2px',
-            backgroundColor: s <= step ? BRAND : '#E5E7EB',
-          }} />
-        ))}
-      </div>
+    <AuthLayout
+      title="Khunnect에 오신 것을 환영합니다"
+      subtitle="당신의 학업 여정을 스마트하게 설계하세요"
+    >
+      <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '22px' }}>
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-        {step === 1 && (
-          <>
-            <div>
-              <label style={labelStyle}>이메일 (Email)</label>
-              <input type="email" placeholder="example@university.ac.kr" value={formData.email} onChange={(e) => updateForm({ email: e.target.value })} style={inputStyle} />
-            </div>
-            <div>
-              <label style={labelStyle}>비밀번호 (Password)</label>
-              <input type="password" placeholder="6자 이상" value={formData.password} onChange={(e) => updateForm({ password: e.target.value })} style={inputStyle} />
-            </div>
-          </>
-        )}
+        {/* 이메일 */}
+        <div style={fieldStyle}>
+          <label style={labelStyle}>이메일 (Email)</label>
+          <input
+            className="auth-input"
+            type="email"
+            placeholder="example@khu.ac.kr"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            required
+          />
+        </div>
 
-        {step === 2 && (
-          <div>
-            <label style={labelStyle}>재학/졸업 여부 (Status)</label>
-            <div style={{ display: 'flex', gap: '8px', backgroundColor: '#FEF2F2', padding: '4px', borderRadius: '12px' }}>
-              {(['student', 'alumni'] as const).map(role => (
-                <button key={role} onClick={() => updateForm({ role })} style={{
-                  flex: 1, padding: '12px',
-                  border: 'none',
-                  borderRadius: '8px',
-                  backgroundColor: formData.role === role ? '#FFFFFF' : 'transparent',
-                  cursor: 'pointer', fontSize: '14px', fontWeight: 600,
-                  color: formData.role === role ? BRAND : '#78716C',
-                  boxShadow: formData.role === role ? '0 1px 2px rgba(0,0,0,0.05)' : 'none',
-                }}>
-                  {role === 'student' ? '재학 (Current)' : '졸업 (Graduate)'}
-                </button>
+        {/* 이름 */}
+        <div style={fieldStyle}>
+          <label style={labelStyle}>이름 (Name)</label>
+          <input
+            className="auth-input"
+            type="text"
+            placeholder="홍길동"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            required
+          />
+        </div>
+
+        {/* 비밀번호 */}
+        <div style={fieldStyle}>
+          <label style={labelStyle}>비밀번호 (Password)</label>
+          <input
+            className="auth-input"
+            type="password"
+            placeholder="••••••••"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            required
+          />
+        </div>
+
+        {/* 비밀번호 확인 */}
+        <div style={fieldStyle}>
+          <label style={labelStyle}>비밀번호 확인 (Verify Password)</label>
+          <input
+            className="auth-input"
+            type="password"
+            placeholder="••••••••"
+            value={passwordConfirm}
+            onChange={(e) => setPasswordConfirm(e.target.value)}
+            required
+          />
+        </div>
+
+        {/* 학번 + 학과 (2열 그리드) */}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+          <div style={fieldStyle}>
+            <label style={labelStyle}>학번 (Student ID)</label>
+            <input
+              className="auth-input"
+              type="text"
+              placeholder="20240001"
+              maxLength={10}
+              value={studentId}
+              onChange={(e) => setStudentId(e.target.value)}
+              required
+            />
+          </div>
+          <div style={fieldStyle}>
+            <label style={labelStyle}>학과 (Department)</label>
+            <select
+              className="auth-input"
+              value={departmentId ?? ''}
+              onChange={(e) => {
+                setDepartmentId(e.target.value ? Number(e.target.value) : null)
+                setTrackId(null)
+              }}
+              required
+              style={{ color: departmentId ? '#1F1A1A' : '#C9A0A0', cursor: 'pointer' }}
+            >
+              <option value="" disabled>선택</option>
+              {departments?.map((d) => (
+                <option key={d.id} value={d.id} style={{ color: '#1F1A1A' }}>
+                  {d.name}
+                </option>
               ))}
-            </div>
+            </select>
+          </div>
+        </div>
+
+        {/* 트랙 (조건부) */}
+        {tracks && tracks.length > 0 && (
+          <div style={fieldStyle}>
+            <label style={labelStyle}>트랙 (Track, 선택사항)</label>
+            <select
+              className="auth-input"
+              value={trackId ?? ''}
+              onChange={(e) => setTrackId(e.target.value ? Number(e.target.value) : null)}
+              style={{ color: trackId ? '#1F1A1A' : '#C9A0A0', cursor: 'pointer' }}
+            >
+              <option value="" style={{ color: '#C9A0A0' }}>선택 안함</option>
+              {tracks.map((t) => (
+                <option key={t.id} value={t.id} style={{ color: '#1F1A1A' }}>
+                  {t.name}
+                </option>
+              ))}
+            </select>
           </div>
         )}
 
-        {step === 3 && (
-          <>
-            <div>
-              <label style={labelStyle}>단과대학 (College)</label>
-              <select value={collegeId ?? ''} onChange={(e) => { setCollegeId(e.target.value ? Number(e.target.value) : null); updateForm({ departmentId: null, trackId: null }) }} style={inputStyle}>
-                <option value="">선택</option>
-                {colleges?.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-              </select>
-            </div>
-            <div>
-              <label style={labelStyle}>학과 (Department)</label>
-              <select value={formData.departmentId ?? ''} onChange={(e) => updateForm({ departmentId: e.target.value ? Number(e.target.value) : null, trackId: null })} style={inputStyle} disabled={!collegeId}>
-                <option value="">선택</option>
-                {departments?.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
-              </select>
-            </div>
-            {tracks && tracks.length > 0 && (
-              <div>
-                <label style={labelStyle}>트랙 (Track, 선택사항)</label>
-                <select value={formData.trackId ?? ''} onChange={(e) => updateForm({ trackId: e.target.value ? Number(e.target.value) : null })} style={inputStyle}>
-                  <option value="">선택</option>
-                  {tracks.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
-                </select>
-              </div>
-            )}
-          </>
+        {/* 재학 / 졸업 토글 */}
+        <div style={fieldStyle}>
+          <label style={labelStyle}>재학/졸업 여부 (Status)</label>
+          <div style={{
+            display: 'flex',
+            backgroundColor: '#FEF2F2',
+            borderRadius: '10px',
+            padding: '4px',
+            gap: '4px',
+            marginTop: '2px',
+          }}>
+            {(['student', 'alumni'] as const).map((r) => (
+              <button
+                key={r}
+                type="button"
+                onClick={() => setRole(r)}
+                style={{
+                  flex: 1,
+                  padding: '10px 0',
+                  border: 'none',
+                  borderRadius: '7px',
+                  backgroundColor: role === r ? '#FFFFFF' : 'transparent',
+                  cursor: 'pointer',
+                  fontSize: '13px',
+                  fontWeight: role === r ? 600 : 400,
+                  color: role === r ? BRAND : '#A8998A',
+                  boxShadow: role === r ? '0 1px 3px rgba(154,0,31,0.12)' : 'none',
+                  transition: 'all 0.15s ease',
+                  fontFamily: 'Roboto, system-ui, sans-serif',
+                }}
+              >
+                {r === 'student' ? '재학 (Current)' : '졸업 (Graduate)'}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* 졸업년도 (졸업생일 때만) */}
+        {role === 'alumni' && (
+          <div style={fieldStyle}>
+            <label style={labelStyle}>졸업년도 (Graduation Year)</label>
+            <input
+              className="auth-input"
+              type="number"
+              placeholder="2024"
+              min={2000}
+              max={2030}
+              value={graduationYear}
+              onChange={(e) => setGraduationYear(e.target.value)}
+              required
+            />
+          </div>
         )}
 
-        {step === 4 && (
-          <>
-            <div>
-              <label style={labelStyle}>이름 (Name)</label>
-              <input type="text" placeholder="홍길동" value={formData.name} onChange={(e) => updateForm({ name: e.target.value })} style={inputStyle} />
-            </div>
-            <div>
-              <label style={labelStyle}>입학년도 (Admission Year)</label>
-              <input type="number" placeholder="2022" value={formData.admissionYear ?? ''} onChange={(e) => updateForm({ admissionYear: e.target.value ? Number(e.target.value) : null })} style={inputStyle} />
-            </div>
-            {formData.role === 'alumni' && (
-              <div>
-                <label style={labelStyle}>졸업년도 (Graduation Year)</label>
-                <input type="number" placeholder="2026" value={formData.graduationYear ?? ''} onChange={(e) => updateForm({ graduationYear: e.target.value ? Number(e.target.value) : null })} style={inputStyle} />
-              </div>
-            )}
-          </>
+        {/* 에러 메시지 */}
+        {error && (
+          <p style={{ fontSize: '13px', color: '#DC2626', margin: 0, padding: '8px 12px', backgroundColor: '#FEF2F2', borderRadius: '8px' }}>
+            {error}
+          </p>
         )}
-      </div>
 
-      {error && <p style={{ fontSize: '13px', color: '#DC2626', margin: 0 }}>{error}</p>}
+        {/* 회원가입 버튼 */}
+        <button
+          type="submit"
+          disabled={loading}
+          style={{
+            marginTop: '4px',
+            padding: '13px',
+            fontSize: '14px',
+            fontWeight: 600,
+            color: loading ? '#C9A0A0' : BRAND,
+            backgroundColor: 'transparent',
+            border: `1.5px solid ${loading ? '#E5C5CB' : BRAND}`,
+            borderRadius: '10px',
+            cursor: loading ? 'not-allowed' : 'pointer',
+            letterSpacing: '0.02em',
+            transition: 'all 0.15s ease',
+            fontFamily: 'Roboto, system-ui, sans-serif',
+          }}
+        >
+          {loading ? '가입 중...' : '회원가입'}
+        </button>
 
-      <div style={{ display: 'flex', gap: '8px' }}>
-        {step > 1 && (
-          <button onClick={handleBack} style={{
-            flex: 1, padding: '14px', fontSize: '15px', fontWeight: 600,
-            color: '#78716C', backgroundColor: 'transparent',
-            border: '1px solid #E5E7EB', borderRadius: '12px', cursor: 'pointer',
-          }}>이전</button>
-        )}
-        {step < TOTAL_STEPS ? (
-          <button onClick={handleNext} style={{
-            flex: 2, padding: '14px', fontSize: '15px', fontWeight: 600,
-            color: BRAND, backgroundColor: 'transparent',
-            border: `1px solid ${BRAND}`, borderRadius: '12px', cursor: 'pointer',
-          }}>다음</button>
-        ) : (
-          <button onClick={handleSubmit} disabled={loading} style={{
-            flex: 2, padding: '14px', fontSize: '15px', fontWeight: 600,
-            color: BRAND, backgroundColor: 'transparent',
-            border: `1px solid ${BRAND}`, borderRadius: '12px',
-            cursor: loading ? 'not-allowed' : 'pointer', opacity: loading ? 0.6 : 1,
-          }}>{loading ? '가입 중...' : '회원가입'}</button>
-        )}
-      </div>
-
-      <p style={{ textAlign: 'center', fontSize: '13px', color: '#78716C', margin: 0 }}>
-        이미 계정이 있으신가요?{' '}
-        <Link to="/login" style={{ color: BRAND, fontWeight: 600, textDecoration: 'none' }}>로그인</Link>
-      </p>
+        {/* 로그인 링크 */}
+        <p style={{ textAlign: 'center', fontSize: '13px', color: '#78716C', margin: 0 }}>
+          이미 계정이 있으신가요?{' '}
+          <Link
+            to="/login"
+            style={{ color: BRAND, fontWeight: 600, textDecoration: 'none' }}
+          >
+            로그인
+          </Link>
+        </p>
+      </form>
     </AuthLayout>
   )
 }

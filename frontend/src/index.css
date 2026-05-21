@@ -28,3 +28,39 @@ body {
   width: 100%;
   min-height: 100vh;
 }
+
+/* ── Auth form inputs ─────────────────────────────── */
+.auth-input {
+  width: 100%;
+  padding: 10px 0;
+  font-size: 14px;
+  border: none;
+  border-bottom: 1.5px solid #E5E7EB;
+  outline: none;
+  background: transparent;
+  color: #1F1A1A;
+  font-family: 'Roboto', system-ui, sans-serif;
+  transition: border-bottom-color 0.2s ease;
+  appearance: none;
+  -webkit-appearance: none;
+}
+
+.auth-input::placeholder {
+  color: #C9A0A0;
+}
+
+.auth-input:focus {
+  border-bottom-color: #9A001F;
+}
+
+.auth-input.error {
+  border-bottom-color: #DC2626;
+}
+
+.auth-input.error:focus {
+  border-bottom-color: #DC2626;
+}
+
+.auth-select option[value=""] {
+  color: #C9A0A0;
+}
