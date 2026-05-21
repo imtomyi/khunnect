@@ -6,7 +6,7 @@ import { BRAND } from '../lib/constants'
 import { useDepartments, useTracks } from '../hooks/useDepartments'
 import AuthLayout from '../components/auth/AuthLayout'
 
-const labelStyle: React.CSSProperties = {
+const labelStyle: CSSProperties = {
   fontSize: '12px',
   fontWeight: 400,
   color: '#5C3F3F',
@@ -15,12 +15,12 @@ const labelStyle: React.CSSProperties = {
   letterSpacing: '0.02em',
 }
 
-const fieldStyle: React.CSSProperties = {
+const fieldStyle: CSSProperties = {
   display: 'flex',
   flexDirection: 'column',
 }
 
-const errorTextStyle: React.CSSProperties = {
+const errorTextStyle: CSSProperties = {
   fontSize: '11px',
   color: '#DC2626',
   marginTop: '4px',

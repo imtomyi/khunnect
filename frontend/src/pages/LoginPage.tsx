@@ -1,10 +1,11 @@
 import { useState } from 'react'
+import type { CSSProperties } from 'react'
 import { useNavigate, Link } from '@tanstack/react-router'
 import { supabase } from '../lib/supabase'
 import { BRAND } from '../lib/constants'
 import AuthLayout from '../components/auth/AuthLayout'
 
-const labelStyle: React.CSSProperties = {
+const labelStyle: CSSProperties = {
   fontSize: '12px',
   fontWeight: 500,
   color: '#78716C',
@@ -13,12 +14,12 @@ const labelStyle: React.CSSProperties = {
   letterSpacing: '0.02em',
 }
 
-const fieldStyle: React.CSSProperties = {
+const fieldStyle: CSSProperties = {
   display: 'flex',
   flexDirection: 'column',
 }
 
-const errorTextStyle: React.CSSProperties = {
+const errorTextStyle: CSSProperties = {
   fontSize: '11px',
   color: '#DC2626',
   marginTop: '4px',
