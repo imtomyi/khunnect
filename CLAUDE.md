@@ -20,10 +20,10 @@
 | Data Fetching | TanStack Query |
 | Backend | Supabase (PostgreSQL + Auth + Storage) |
 | CSS | Tailwind CSS (예정) |
-| Container | Docker |
-| Orchestration | Kubernetes (OrbStack) |
+| Container | Docker Engine |
+| Orchestration | Kubernetes (minikube) |
 | CI/CD | GitHub Actions |
-| 개발 환경 | macOS + OrbStack |
+| 개발 환경 | Ubuntu (OrbStack Linux Machine) |
 
 ---
 
@@ -138,19 +138,32 @@ cd frontend && npm run dev
 # http://localhost:5173
 ```
 
-### Docker 빌드 & 실행
+### Docker 빌드 & 실행 (단순 테스트)
 ```bash
 docker build -t khunnect-frontend:latest ./frontend
 docker run -p 3000:80 khunnect-frontend:latest
 # http://localhost:3000
 ```
 
-### K8s 배포
+### minikube 시작
 ```bash
+minikube start --driver=docker
+minikube status
+```
+
+### K8s 배포 (minikube)
+```bash
+# 반드시 minikube의 Docker daemon 안에서 이미지 빌드
+eval $(minikube docker-env)
+docker build -t khunnect-frontend:latest ./frontend
+
+# 배포
 kubectl apply -f k8s/frontend-deployment.yaml
 kubectl get pods
 kubectl get services
-# http://localhost:30080
+
+# 서비스 URL 확인
+minikube service frontend-service --url
 ```
 
 ### K8s 상태 확인
@@ -158,6 +171,13 @@ kubectl get services
 kubectl get nodes
 kubectl get pods
 kubectl get services
+minikube dashboard   # 웹 대시보드
+```
+
+### minikube 중지/삭제
+```bash
+minikube stop
+minikube delete   # 클러스터 초기화
 ```
 
 ### Git
@@ -188,11 +208,61 @@ components/profile/    프로필 관련 전용
 
 ---
 
+## OrbStack Linux Machine 초기 세팅
+
+### OrbStack Linux Machine 진입
+```bash
+# macOS 터미널에서
+orb                     # 기본 Linux 머신으로 진입
+orb shell ubuntu        # Ubuntu 머신으로 진입 (이름 지정 시)
+
+# VS Code Remote SSH 연결
+# Host: orb  또는  orb-ubuntu (머신 이름에 따라)
+```
+
+### 개발 환경 설치 (Linux Machine 내부)
+```bash
+# 1. 패키지 업데이트
+sudo apt-get update && sudo apt-get upgrade -y
+
+# 2. Node.js 20 (nvm 권장)
+curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.7/install.sh | bash
+source ~/.bashrc
+nvm install 20 && nvm use 20
+
+# 3. Docker는 OrbStack 소켓 공유로 자동 사용 가능
+docker ps   # 바로 동작 확인
+
+# 4. kubectl 설치
+curl -LO "https://dl.k8s.io/release/$(curl -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+sudo install -o root -g root -m 0755 kubectl /usr/local/bin/kubectl
+
+# 5. minikube 설치
+curl -LO https://storage.googleapis.com/minikube/releases/latest/minikube-linux-amd64
+sudo install minikube-linux-amd64 /usr/local/bin/minikube
+
+# 6. minikube 시작
+minikube start --driver=docker
+```
+
+### 프로젝트 클론 (Linux Machine 내부)
+```bash
+git clone https://github.com/<username>/khunnect.git
+cd khunnect/frontend
+npm install
+cp .env.example .env   # 환경변수 설정
+npm run dev
+# http://localhost:5173  (OrbStack이 포트 자동 포워딩)
+```
+
+---
+
 ## 주요 참고 사항
 
 - `.env` 파일은 절대 GitHub에 올리지 말 것
 - `service_role` 키는 절대 공유 금지
 - SQL 실행 시 Supabase SQL Editor에서 새 탭을 열어서 진행
-- K8s 이미지는 `imagePullPolicy: Never` (로컬 이미지 사용)
+- K8s 이미지 빌드 전 반드시 `eval $(minikube docker-env)` 실행 (`imagePullPolicy: Never` 사용)
+- minikube 서비스 접근은 `minikube service frontend-service --url` (localhost:30080 아님)
 - 이메일 인증은 개발 중 비활성화 (Authentication > Settings > Confirm email OFF)
 - TanStack Router는 `tanstackRouter()` import 사용 (구버전 `TanStackRouterVite` deprecated)

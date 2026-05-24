@@ -8,20 +8,10 @@ import { CategoryPanel, CATEGORY_CONFIG, type CourseType } from '../components/c
 import { CourseGrid, type CatalogCourse } from '../components/curriculum/CourseGrid'
 import { SavedCheckIcon, CalculatorIcon } from '../components/curriculum/Icons'
 
-const CHECKED_STORAGE_KEY = 'curriculum_checked_courses'
-
-function loadCheckedFromStorage(): Set<string> {
-  try {
-    const raw = localStorage.getItem(CHECKED_STORAGE_KEY)
-    if (!raw) return new Set()
-    return new Set(JSON.parse(raw) as string[])
-  } catch {
-    return new Set()
-  }
-}
-
-function saveCheckedToStorage(checked: Set<string>) {
-  localStorage.setItem(CHECKED_STORAGE_KEY, JSON.stringify([...checked]))
+type Requirement = {
+  basic_credits: number
+  required_credits: number
+  elective_credits: number
 }
 
 export default function CurriculumPage() {
@@ -29,6 +19,7 @@ export default function CurriculumPage() {
   const navigate = useNavigate()
 
   const [catalog, setCatalog] = useState<CatalogCourse[]>([])
+  const [requirement, setRequirement] = useState<Requirement | null>(null)
   const [selectedType, setSelectedType] = useState<CourseType>('전공기초')
   const [checked, setChecked] = useState<Set<string>>(new Set())
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saved'>('idle')
@@ -38,60 +29,99 @@ export default function CurriculumPage() {
     if (!loading && !user) navigate({ to: '/login' })
   }, [user, loading, navigate])
 
-  // localStorage에서 체크 상태 복원
+  // Supabase에서 체크된 과목 로드
   useEffect(() => {
-    setChecked(loadCheckedFromStorage())
-  }, [])
+    if (!user) return
+    supabase
+      .from('checked_courses')
+      .select('course_id')
+      .eq('user_id', user.id)
+      .then(({ data }) => {
+        if (data) setChecked(new Set(data.map((r: any) => r.course_id as string)))
+      })
+  }, [user])
 
-  // Supabase에서 course_catalog 로드
+  // course_catalog + curriculum_requirements 병렬 로드
   useEffect(() => {
     if (!user) return
     setCatalogLoading(true)
-    supabase
+
+    const loadCatalog = supabase
       .from('course_catalog')
       .select('id, name, type, credits, code')
-      .then(({ data, error }) => {
-        if (error) {
-          console.error('과목 카탈로그 조회 에러:', error)
-          setCatalog([])
-        } else {
-          setCatalog(
-            (data || []).map((c: any) => ({
-              id: String(c.id),
-              name: c.name as string,
-              type: c.type as CourseType,
-              credits: Number(c.credits),
-              code: (c.code || c.id) as string,
-            }))
-          )
-        }
-        setCatalogLoading(false)
-      })
+
+    const loadMajor = supabase
+      .from('user_majors')
+      .select('department_id, admission_year')
+      .eq('user_id', user.id)
+      .eq('type', 'major')
+      .single()
+
+    Promise.all([loadCatalog, loadMajor]).then(async ([catalogRes, majorRes]) => {
+      // 과목 목록 세팅
+      setCatalog(
+        (catalogRes.data || []).map((c: any) => ({
+          id: String(c.id),
+          name: c.name as string,
+          type: c.type as CourseType,
+          credits: Number(c.credits),
+          code: (c.code ?? c.id) as string,
+        }))
+      )
+
+      // 졸업 요건 로드 (학과 정보가 있을 때)
+      const deptId = (majorRes.data as any)?.department_id
+      if (deptId) {
+        const { data: reqData } = await supabase
+          .from('curriculum_requirements')
+          .select('basic_credits, required_credits, elective_credits')
+          .eq('department_id', deptId)
+          .single()
+        if (reqData) setRequirement(reqData as Requirement)
+      }
+
+      setCatalogLoading(false)
+    })
   }, [user])
 
   if (loading || !user) return null
 
+  // 과목 체크/언체크 — Supabase 즉시 반영
   function toggleCourse(id: string) {
     setChecked(prev => {
       const next = new Set(prev)
-      next.has(id) ? next.delete(id) : next.add(id)
-      saveCheckedToStorage(next)
+      if (next.has(id)) {
+        next.delete(id)
+        supabase.from('checked_courses')
+          .delete()
+          .eq('user_id', user!.id)
+          .eq('course_id', id)
+          .then()
+      } else {
+        next.add(id)
+        supabase.from('checked_courses')
+          .insert({ user_id: user!.id, course_id: id })
+          .then()
+      }
       return next
     })
   }
 
   function handleSave() {
-    saveCheckedToStorage(checked)
     setSaveStatus('saved')
     setTimeout(() => setSaveStatus('idle'), 3000)
   }
 
   const category = CATEGORY_CONFIG.find(c => c.type === selectedType)!
   const currentCourses = catalog.filter(c => c.type === selectedType)
+
   const completedCredits = currentCourses
     .filter(c => checked.has(c.id))
     .reduce((sum, c) => sum + c.credits, 0)
-  const reqTotal = 0 // 졸업 요건은 추후 DB에서 로드 예정
+
+  const reqTotal = requirement
+    ? ({ 전공기초: requirement.basic_credits, 전공필수: requirement.required_credits, 전공선택: requirement.elective_credits })[selectedType] ?? 0
+    : 0
 
   return (
     <div style={{ fontFamily: 'var(--font-roboto)', backgroundColor: '#FFFFFF', minHeight: '100vh' }}>
@@ -103,7 +133,7 @@ export default function CurriculumPage() {
           style={{ paddingTop: '49.54px', paddingBottom: '49.54px' }}
         >
 
-          {/* 히어로 섹션 — 전폭, Navbar 아래 밀착 */}
+          {/* 히어로 섹션 */}
           <div style={{
             backgroundColor: '#FFF8F7',
             padding: '72px 0 80px',
@@ -127,10 +157,8 @@ export default function CurriculumPage() {
           <div style={{ paddingTop: '48px', paddingBottom: '120px' }}>
             <div style={{ display: 'flex', gap: '24px', alignItems: 'flex-start', minHeight: '560px' }}>
 
-              {/* 왼쪽: 카테고리 탭 패널 */}
               <CategoryPanel selectedType={selectedType} onSelect={setSelectedType} />
 
-              {/* 오른쪽: 과목 체크 그리드 */}
               {catalogLoading ? (
                 <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                   <p style={{ color: '#A8A29E', fontSize: '14px' }}>과목을 불러오는 중...</p>
@@ -169,12 +197,7 @@ export default function CurriculumPage() {
                   boxShadow: '0 8px 16px -4px rgba(46, 103, 147, 0.6)',
                 }}
               >
-                {saveStatus === 'saved' ? (
-                  <>
-                    <SavedCheckIcon />
-                    저장됨
-                  </>
-                ) : '저장'}
+                {saveStatus === 'saved' ? <><SavedCheckIcon />저장됨</> : '저장'}
               </button>
               <button
                 style={{
@@ -182,7 +205,6 @@ export default function CurriculumPage() {
                   alignItems: 'center',
                   gap: '10px',
                   padding: '14px 40px',
-                  minWidth: '120px',
                   borderRadius: '999px',
                   border: 'none',
                   backgroundColor: '#2E6793',
