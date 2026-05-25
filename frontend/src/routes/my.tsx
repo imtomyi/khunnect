@@ -1,6 +1,8 @@
+import { lazy } from 'react'
 import { createFileRoute, redirect } from '@tanstack/react-router'
 import { supabase } from '../lib/supabase'
-import MyPage from '../pages/MyPage'
+
+const MyPage = lazy(() => import('../pages/MyPage'))
 
 export const Route = createFileRoute('/my')({
   beforeLoad: async () => {

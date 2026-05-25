@@ -623,11 +623,11 @@ git push origin main
 
 ## Phase 진행 현황
 
-```
-Phase 1 ✅  환경 세팅 + Docker + K8s 로컬 배포 + CI/CD
-Phase 2 ✅  Supabase Auth + 유저 프로필 + 커리큘럼 계산기
-Phase 3     커리큘럼 CRUD + 탐색/필터/북마크
-Phase 4     커피챗 신청 시스템
-Phase 5     실시간 채팅 (Supabase Realtime)
-Phase 6     프로덕션 배포 (Ingress, TLS, 모니터링)
-```
+| Phase | 상태 | 내용 | 핵심 기술 |
+|-------|------|------|-----------|
+| **Phase 1** | ✅ 완료 | 환경 세팅 + Docker 빌드 + K8s 로컬 배포 + CI/CD | OrbStack, Docker, minikube, GitHub Actions |
+| **Phase 2** | ✅ 완료 | Supabase Auth + 유저 프로필 + 커리큘럼 계산기 | Supabase, TanStack Router/Query, React |
+| **Phase 3** | ⬜ 예정 | 커리큘럼 게시물 CRUD + 탐색/필터/북마크 | `curricula` 테이블, 검색 UI |
+| **Phase 4** | ⬜ 예정 | 커피챗 신청 시스템 | 신청 폼, 선배 멘토링 일정 |
+| **Phase 5** | ⬜ 예정 | 실시간 채팅 | Supabase Realtime |
+| **Phase 6** | ⬜ 예정 | 프로덕션 배포 | Ingress + TLS + 모니터링 |

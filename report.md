@@ -11,23 +11,23 @@
 
 My use case for this project is **full-stack web development using Linux as the primary environment**, following an **Agile/DevOps/Scrum** methodology. I built **Khunnect**, a curriculum planning platform for Kyung Hee University students, entirely within a Linux environment (OrbStack Linux Machine). The platform connects undergraduate students with alumni who share their curriculum paths and career advice.
 
-### Development Methodology: Agile/DevOps/Scrum
+### Development Methodology: Agile / DevOps / Scrum
 
-The 11 weeks are structured to mirror a real-world **DevOps pipeline**, inspired by Scrum's principle of establishing infrastructure and automation early so every subsequent sprint benefits from fast feedback loops:
+The 11 weeks follow the **DevOps lifecycle** — establishing infrastructure and automation first, so every subsequent sprint benefits from fast, automated feedback.
 
 ```
-Infrastructure → Source Control → CI/CD → Code → Build →
-  Release → Deploy → Operate → Backend → AI Tooling
+Plan → Code → Build → Test → Release → Deploy → Operate → Monitor
 ```
 
-In Scrum terms:
-- **Sprint 0** (Weeks 1–2): Environment setup — trying UTM, switching to OrbStack
-- **Sprint 1** (Weeks 3–4): DevOps foundation — Git + GitHub Actions CI/CD pipeline
-- **Sprint 2** (Weeks 5–6): Development tools — Node.js runtime + Vite build system
-- **Sprint 3** (Weeks 7–9): Containerization & Orchestration — Docker + minikube + kubectl
-- **Sprint 4** (Weeks 10–11): Services & AI — Supabase backend + Antigravity AI agent
+| Sprint | Weeks | Theme | Software | DevOps Stage |
+|--------|-------|-------|----------|--------------|
+| **Sprint 0** | 1 – 2 | Infrastructure | UTM, OrbStack | Environment |
+| **Sprint 1** | 3 – 4 | Foundation | Git, GitHub Actions | Source Control + CI/CD |
+| **Sprint 2** | 5 – 6 | Development | Node.js, Vite | Code + Build |
+| **Sprint 3** | 7 – 9 | Deployment | Docker, minikube, kubectl | Release + Deploy + Operate |
+| **Sprint 4** | 10 – 11 | Services & AI | Supabase, Antigravity | Backend + AI Tooling |
 
-This ordering reflects the real sequence in which tools were adopted during the project: CI/CD was established before writing application code, ensuring every commit was automatically validated from day one.
+> CI/CD (GitHub Actions) was set up in **Sprint 1**, before writing any application code — ensuring every commit was automatically validated from day one. This is the core Scrum/DevOps principle: automate the feedback loop early.
 
 ### Technology Stack
 

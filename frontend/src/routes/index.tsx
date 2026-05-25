@@ -1,5 +1,7 @@
+import { lazy } from 'react'
 import { createFileRoute } from '@tanstack/react-router'
-import LandingPage from '../pages/LandingPage'
+
+const LandingPage = lazy(() => import('../pages/LandingPage'))
 
 export const Route = createFileRoute('/')({
   component: LandingPage,

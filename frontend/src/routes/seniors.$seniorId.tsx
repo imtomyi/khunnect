@@ -1,6 +1,8 @@
+import { lazy } from 'react'
 import { createFileRoute, redirect } from '@tanstack/react-router'
 import { supabase } from '../lib/supabase'
-import SeniorDetailPage from '../pages/SeniorDetailPage'
+
+const SeniorDetailPage = lazy(() => import('../pages/SeniorDetailPage'))
 
 export const Route = createFileRoute('/seniors/$seniorId')({
   beforeLoad: async () => {

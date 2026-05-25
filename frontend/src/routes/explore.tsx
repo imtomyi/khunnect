@@ -1,6 +1,8 @@
+import { lazy } from 'react'
 import { createFileRoute, redirect } from '@tanstack/react-router'
 import { supabase } from '../lib/supabase'
-import ExplorePage from '../pages/ExplorePage'
+
+const ExplorePage = lazy(() => import('../pages/ExplorePage'))
 
 export const Route = createFileRoute('/explore')({
   validateSearch: (search: Record<string, unknown>) => ({
