@@ -67,12 +67,12 @@ export default function ScrollingFrame() {
       <div style={{
         position: "sticky",
         top: 0,
+        width: "100%",
         height: "100vh",
         overflow: "hidden",
-        display: "flex",
-        alignItems: "center",
         backgroundColor: "#FFFFFF",
       }}>
+        {/* position: absolute → 레이아웃에 영향 없이 뷰포트 너비 유지 */}
         <img
           ref={imgRef}
           src="/onboarding_frame.png"
@@ -82,11 +82,13 @@ export default function ScrollingFrame() {
             updateTranslate()
           }}
           style={{
-            transform: `translateX(${translateX}px)`,
+            position: "absolute",
+            top: "50%",
+            left: 0,
+            transform: `translateX(${translateX}px) translateY(-50%)`,
             display: "block",
             maxHeight: "85vh",
             width: "auto",
-            flexShrink: 0,
             willChange: "transform",
           }}
         />

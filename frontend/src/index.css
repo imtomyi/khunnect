@@ -35,7 +35,6 @@
 body {
   @apply font-sans antialiased;
   font-family: var(--font-roboto);
-  min-width: 1280px;
 }
 
 #root {
