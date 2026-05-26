@@ -1,12 +1,7 @@
 import { CheckIcon, UncheckIcon } from './Icons'
+import type { CatalogCourse } from '../../types/index'
 
-export type CatalogCourse = {
-  id: string
-  name: string
-  type: '전공기초' | '전공필수' | '전공선택'
-  credits: number
-  code: string
-}
+export type { CatalogCourse }
 
 type CourseGridProps = {
   categoryLabel: string

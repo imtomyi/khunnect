@@ -5,8 +5,10 @@ import { NAV_OPACITY } from "../../lib/constants"
 export default function Navbar() {
   return (
     <div style={{
-      position: "sticky",
+      position: "fixed",
       top: "10px",
+      left: 0,
+      right: 0,
       zIndex: 100,
       display: "flex",
       justifyContent: "center",

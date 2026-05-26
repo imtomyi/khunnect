@@ -1,110 +1,101 @@
-import { useState, useEffect } from 'react'
-import { useNavigate } from '@tanstack/react-router'
+import { useMemo, useState } from 'react'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useAuth } from '../hooks/useAuth'
 import { supabase } from '../lib/supabase'
+import type { CatalogCourse, CurriculumRequirement, CourseType } from '../types/index'
 import DashboardNav from '../components/dashboard/DashboardNav'
 import HomeFooter from '../components/dashboard/HomeFooter'
-import { CategoryPanel, CATEGORY_CONFIG, type CourseType } from '../components/curriculum/CategoryPanel'
-import { CourseGrid, type CatalogCourse } from '../components/curriculum/CourseGrid'
+import { CategoryPanel, CATEGORY_CONFIG } from '../components/curriculum/CategoryPanel'
+import { CourseGrid } from '../components/curriculum/CourseGrid'
 import { SavedCheckIcon, CalculatorIcon } from '../components/curriculum/Icons'
 
-type Requirement = {
-  basic_credits: number
-  required_credits: number
-  elective_credits: number
-}
-
 export default function CurriculumPage() {
-  const { user, loading } = useAuth()
-  const navigate = useNavigate()
-
-  const [catalog, setCatalog] = useState<CatalogCourse[]>([])
-  const [requirement, setRequirement] = useState<Requirement | null>(null)
+  const { user } = useAuth()
+  const queryClient = useQueryClient()
   const [selectedType, setSelectedType] = useState<CourseType>('전공기초')
-  const [checked, setChecked] = useState<Set<string>>(new Set())
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saved'>('idle')
-  const [catalogLoading, setCatalogLoading] = useState(true)
 
-  useEffect(() => {
-    if (!loading && !user) navigate({ to: '/login' })
-  }, [user, loading, navigate])
+  // 학과 정보 (department_id 조회)
+  const { data: majorData } = useQuery({
+    queryKey: ['user_major', user?.id],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from('user_majors')
+        .select('department_id')
+        .eq('user_id', user!.id)
+        .eq('type', 'major')
+        .single()
+      return data
+    },
+    enabled: !!user,
+  })
 
-  // Supabase에서 체크된 과목 로드
-  useEffect(() => {
-    if (!user) return
-    supabase
-      .from('checked_courses')
-      .select('course_id')
-      .eq('user_id', user.id)
-      .then(({ data }) => {
-        if (data) setChecked(new Set(data.map((r: any) => r.course_id as string)))
-      })
-  }, [user])
+  // 과목 카탈로그
+  const { data: catalog = [], isLoading: catalogLoading } = useQuery<CatalogCourse[]>({
+    queryKey: ['course_catalog'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('course_catalog')
+        .select('id, name, type, credits, code')
+      if (error) throw error
+      return (data || []).map((c: any) => ({
+        id: String(c.id),
+        name: c.name as string,
+        type: c.type as CourseType,
+        credits: Number(c.credits),
+        code: (c.code ?? c.id) as string,
+      }))
+    },
+    enabled: !!user,
+  })
 
-  // course_catalog + curriculum_requirements 병렬 로드
-  useEffect(() => {
-    if (!user) return
-    setCatalogLoading(true)
+  // 졸업 요건
+  const { data: requirement } = useQuery<CurriculumRequirement | null>({
+    queryKey: ['curriculum_requirements', majorData?.department_id],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from('curriculum_requirements')
+        .select('basic_credits, required_credits, elective_credits')
+        .eq('department_id', majorData!.department_id)
+        .single()
+      return data ?? null
+    },
+    enabled: !!majorData?.department_id,
+  })
 
-    const loadCatalog = supabase
-      .from('course_catalog')
-      .select('id, name, type, credits, code')
+  // 체크된 과목 목록 (string[] — course_id 배열)
+  const { data: checkedIds = [] } = useQuery<string[]>({
+    queryKey: ['checked_courses', user?.id],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from('checked_courses')
+        .select('course_id')
+        .eq('user_id', user!.id)
+      return (data || []).map((r: any) => r.course_id as string)
+    },
+    enabled: !!user,
+  })
 
-    const loadMajor = supabase
-      .from('user_majors')
-      .select('department_id, admission_year')
-      .eq('user_id', user.id)
-      .eq('type', 'major')
-      .single()
+  // Set으로 변환 (메모이즈)
+  const checked = useMemo(() => new Set(checkedIds), [checkedIds])
 
-    Promise.all([loadCatalog, loadMajor]).then(async ([catalogRes, majorRes]) => {
-      // 과목 목록 세팅
-      setCatalog(
-        (catalogRes.data || []).map((c: any) => ({
-          id: String(c.id),
-          name: c.name as string,
-          type: c.type as CourseType,
-          credits: Number(c.credits),
-          code: (c.code ?? c.id) as string,
-        }))
-      )
-
-      // 졸업 요건 로드 (학과 정보가 있을 때)
-      const deptId = (majorRes.data as any)?.department_id
-      if (deptId) {
-        const { data: reqData } = await supabase
-          .from('curriculum_requirements')
-          .select('basic_credits, required_credits, elective_credits')
-          .eq('department_id', deptId)
-          .single()
-        if (reqData) setRequirement(reqData as Requirement)
-      }
-
-      setCatalogLoading(false)
-    })
-  }, [user])
-
-  if (loading || !user) return null
-
-  // 과목 체크/언체크 — Supabase 즉시 반영
+  // 과목 체크/언체크 — 캐시 즉시 업데이트 + 백그라운드 Supabase 동기화
   function toggleCourse(id: string) {
-    setChecked(prev => {
-      const next = new Set(prev)
-      if (next.has(id)) {
-        next.delete(id)
-        supabase.from('checked_courses')
-          .delete()
-          .eq('user_id', user!.id)
-          .eq('course_id', id)
-          .then()
-      } else {
-        next.add(id)
-        supabase.from('checked_courses')
-          .insert({ user_id: user!.id, course_id: id })
-          .then()
-      }
-      return next
-    })
+    const isChecked = checked.has(id)
+    queryClient.setQueryData<string[]>(['checked_courses', user?.id], (prev = []) =>
+      isChecked ? prev.filter(x => x !== id) : [...prev, id]
+    )
+    if (isChecked) {
+      supabase.from('checked_courses')
+        .delete()
+        .eq('user_id', user!.id)
+        .eq('course_id', id)
+        .then()
+    } else {
+      supabase.from('checked_courses')
+        .insert({ user_id: user!.id, course_id: id })
+        .then()
+    }
   }
 
   function handleSave() {

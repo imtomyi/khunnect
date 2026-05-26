@@ -7,16 +7,22 @@ import CTASection from "../components/landing/CTASection"
 
 export default function LandingPage() {
   return (
-    <div style={{ fontFamily: "Roboto, sans-serif", backgroundColor: "#FFFFFF", width: "100%", overflowX: "hidden" }}>
-      <Navbar />
-      <HeroSection />
-      <QuoteSection
-        quote="혼자 고민해서는 앞으로 어떤 길을 가야 할지 답이 안 나와요. 먼저 그 길을 걸어본 선배의 현실적인 조언이 필요해요."
-        author="산업디자인학과 22학번 김모씨"
-      />
-      <FeaturesSection />
+    <div style={{ fontFamily: "Roboto, sans-serif", backgroundColor: "#FFFFFF", width: "100%" }}>
+      {/* overflowX: hidden을 루트에 두면 position: sticky가 깨짐 — 섹션별로 격리 */}
+      <div style={{ overflowX: "hidden" }}>
+        <Navbar />
+        <HeroSection />
+        <QuoteSection
+          quote="혼자 고민해서는 앞으로 어떤 길을 가야 할지 답이 안 나와요. 먼저 그 길을 걸어본 선배의 현실적인 조언이 필요해요."
+          author="산업디자인학과 22학번 김모씨"
+        />
+        <FeaturesSection />
+      </div>
+      {/* ScrollingFrame은 overflow: hidden 밖에 — sticky가 정상 작동하려면 필수 */}
       <ScrollingFrame />
-      <CTASection />
+      <div style={{ overflowX: "hidden" }}>
+        <CTASection />
+      </div>
     </div>
   )
 }

@@ -1,15 +1,6 @@
 import { Link } from '@tanstack/react-router'
 import { getAvatarVariantForId, AvatarIcon } from '../../lib/avatarVariants'
-
-export type Senior = {
-  id: string
-  name: string
-  department?: string
-  graduationYear?: number
-  skills: string[]
-  isAvailable: boolean
-  profileImage?: string | null
-}
+import type { Senior } from '../../types/index'
 
 const cardStyle: React.CSSProperties = {
   backgroundColor: '#FFFFFF',

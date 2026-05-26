@@ -1,6 +1,7 @@
 import { TipIcon } from './Icons'
+import type { CourseType } from '../../types/index'
 
-export type CourseType = '전공기초' | '전공필수' | '전공선택'
+export type { CourseType }
 
 type CategoryConfig = {
   type: CourseType

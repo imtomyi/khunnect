@@ -45,32 +45,8 @@ export function AvatarIcon({
   )
 }
 
-const AVATAR_IDX_OVERRIDES: Record<string, number> = {
-  'senior-2': 0,
-  'senior-3': 2,
-}
-
+/** UUID 문자열을 해시하여 일관된 아바타 변형 반환 */
 export function getAvatarVariantForId(id: string): AvatarVariant {
-  if (id in AVATAR_IDX_OVERRIDES) return AVATAR_VARIANTS[AVATAR_IDX_OVERRIDES[id]]
   const hash = id.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0)
   return AVATAR_VARIANTS[hash % AVATAR_VARIANTS.length]
-}
-
-export function getRandomAvatarIdx(): number {
-  return Math.floor(Math.random() * AVATAR_VARIANTS.length)
-}
-
-const STORAGE_KEY = 'avatar_variant_idx'
-
-export function saveAvatarIdx(idx: number): void {
-  if (typeof window !== 'undefined') {
-    localStorage.setItem(STORAGE_KEY, String(idx))
-  }
-}
-
-export function loadAvatarVariant(): AvatarVariant {
-  if (typeof window === 'undefined') return AVATAR_VARIANTS[0]
-  const raw = localStorage.getItem(STORAGE_KEY)
-  const idx = raw !== null ? parseInt(raw, 10) : 0
-  return AVATAR_VARIANTS[idx] ?? AVATAR_VARIANTS[0]
 }

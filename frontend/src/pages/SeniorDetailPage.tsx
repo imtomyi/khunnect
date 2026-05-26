@@ -1,19 +1,11 @@
-import { useEffect, useState } from 'react'
-import { useNavigate } from '@tanstack/react-router'
+import { useQuery } from '@tanstack/react-query'
 import type { CSSProperties } from 'react'
 import { supabase } from '../lib/supabase'
-import { useAuth } from '../hooks/useAuth'
+import type { Senior } from '../types/index'
 import DashboardNav from '../components/dashboard/DashboardNav'
 import HomeFooter from '../components/dashboard/HomeFooter'
 import { AvatarIcon, getAvatarVariantForId } from '../lib/avatarVariants'
 import { Route } from '../routes/seniors.$seniorId'
-
-type SeniorProfile = {
-  id: string
-  name: string
-  department?: string
-  graduationYear?: number
-}
 
 const loadingStyle: CSSProperties = {
   padding: '60px',
@@ -87,43 +79,38 @@ const comingSoonStyle: CSSProperties = {
   marginTop: '32px',
 }
 
+async function fetchSeniorDetail(seniorId: string): Promise<Senior> {
+  const { data, error } = await supabase
+    .from('profiles')
+    .select(`
+      id, name,
+      user_majors(graduation_year, departments(name))
+    `)
+    .eq('id', seniorId)
+    .single()
+
+  if (error || !data) throw error ?? new Error('선배 정보를 찾을 수 없습니다.')
+
+  const row = data as any
+  const majorInfo = Array.isArray(row.user_majors) ? row.user_majors[0] : row.user_majors
+  return {
+    id: row.id as string,
+    name: row.name as string,
+    department: majorInfo?.departments?.name as string | undefined,
+    graduationYear: majorInfo?.graduation_year as number | undefined,
+    skills: [],
+    isAvailable: true,
+    profileImage: null,
+  }
+}
+
 export default function SeniorDetailPage() {
   const { seniorId } = Route.useParams()
-  const { user, loading } = useAuth()
-  const navigate = useNavigate()
-  const [senior, setSenior] = useState<SeniorProfile | null>(null)
-  const [fetching, setFetching] = useState(true)
 
-  useEffect(() => {
-    if (!loading && !user) navigate({ to: '/login' })
-  }, [user, loading, navigate])
-
-  useEffect(() => {
-    if (!user || !seniorId) return
-    setFetching(true)
-    supabase
-      .from('profiles')
-      .select(`
-        id, name,
-        user_majors(graduation_year, departments(name))
-      `)
-      .eq('id', seniorId)
-      .single()
-      .then(({ data, error }) => {
-        if (error || !data) { setFetching(false); return }
-        const row = data as any
-        const majorInfo = Array.isArray(row.user_majors) ? row.user_majors[0] : row.user_majors
-        setSenior({
-          id: row.id,
-          name: row.name,
-          department: majorInfo?.departments?.name,
-          graduationYear: majorInfo?.graduation_year,
-        })
-        setFetching(false)
-      })
-  }, [user, seniorId])
-
-  if (loading || !user) return null
+  const { data: senior, isLoading: fetching } = useQuery({
+    queryKey: ['senior', seniorId],
+    queryFn: () => fetchSeniorDetail(seniorId),
+  })
 
   const avatarVariant = senior ? getAvatarVariantForId(senior.id) : null
 

@@ -57,7 +57,6 @@ export default function HeroSection() {
         <div style={{
           marginTop: "8px",
           width: "760px", borderRadius: "20px", overflow: "hidden",
-          boxShadow: "0 40px 100px rgba(0,0,0,0.18), 0 8px 32px rgba(0,0,0,0.10), 0 0 0 1px rgba(0,0,0,0.06)",
         }}>
           <img src="/main 1.png" alt="앱 스크린샷" style={{ width: "100%", display: "block" }} />
         </div>
