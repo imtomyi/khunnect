@@ -11,7 +11,32 @@ export type Senior = {
   graduationYear?: number
   skills: string[]
   isAvailable: boolean
+  bio?: string | null
+  jobTitle?: string | null
+  company?: string | null
   profileImage?: string | null
+}
+
+/** 커피챗 신청 (Phase 4) */
+export type CoffeeChatStatus = 'pending' | 'accepted' | 'declined' | 'cancelled'
+
+export type CoffeeChat = {
+  id: number
+  studentId: string
+  seniorId: string
+  message: string | null
+  status: CoffeeChatStatus
+  createdAt: string
+  counterpartName?: string
+}
+
+/** 채팅 메시지 (Phase 5) */
+export type Message = {
+  id: number
+  coffeeChatId: number
+  senderId: string
+  content: string
+  createdAt: string
 }
 
 /** 과목 카탈로그 항목 */

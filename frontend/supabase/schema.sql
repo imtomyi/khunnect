@@ -59,12 +59,17 @@ CREATE TABLE tracks (
 
 -- ── 유저 프로필 (auth.users 와 1:1) ─────────────────────────────────────
 CREATE TABLE profiles (
-  id         UUID        PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
-  email      TEXT        NOT NULL,
-  name       TEXT        NOT NULL,
-  role       TEXT        NOT NULL DEFAULT 'student'
-                         CHECK (role IN ('student', 'alumni')),
-  created_at TIMESTAMPTZ DEFAULT NOW()
+  id           UUID        PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
+  email        TEXT        NOT NULL,
+  name         TEXT        NOT NULL,
+  role         TEXT        NOT NULL DEFAULT 'student'
+                           CHECK (role IN ('student', 'alumni')),
+  bio          TEXT,                              -- 한 줄 소개
+  job_title    TEXT,                              -- 현재 직무/직책
+  company      TEXT,                              -- 소속 회사/기관
+  is_available BOOLEAN     NOT NULL DEFAULT TRUE, -- 커피챗/상담 가능 여부
+  skills       TEXT[]      NOT NULL DEFAULT '{}', -- 전문 분야 태그
+  created_at   TIMESTAMPTZ DEFAULT NOW()
 );
 
 -- ── 유저 전공 정보 ───────────────────────────────────────────────────────
@@ -122,6 +127,33 @@ CREATE TABLE bookmarks (
   UNIQUE(user_id, senior_id)
 );
 
+-- ── 커피챗 신청 (Phase 4) ─────────────────────────────────────────────────
+CREATE TABLE coffee_chats (
+  id           SERIAL      PRIMARY KEY,
+  student_id   UUID        NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
+  senior_id    UUID        NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
+  message      TEXT,
+  status       TEXT        NOT NULL DEFAULT 'pending'
+                           CHECK (status IN ('pending', 'accepted', 'declined', 'cancelled')),
+  created_at   TIMESTAMPTZ DEFAULT NOW(),
+  responded_at TIMESTAMPTZ,
+  CHECK (student_id <> senior_id)   -- 자기 자신에게 신청 방지
+);
+CREATE UNIQUE INDEX coffee_chats_unique_pending
+  ON coffee_chats (student_id, senior_id) WHERE status = 'pending';
+CREATE INDEX idx_coffee_chats_senior  ON coffee_chats (senior_id, status);
+CREATE INDEX idx_coffee_chats_student ON coffee_chats (student_id, status);
+
+-- ── 채팅 메시지 (Phase 5) ─────────────────────────────────────────────────
+CREATE TABLE messages (
+  id             SERIAL      PRIMARY KEY,
+  coffee_chat_id INTEGER     NOT NULL REFERENCES coffee_chats(id) ON DELETE CASCADE,
+  sender_id      UUID        NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
+  content        TEXT        NOT NULL,
+  created_at     TIMESTAMPTZ DEFAULT NOW()
+);
+CREATE INDEX idx_messages_chat ON messages (coffee_chat_id, created_at);
+
 
 -- ════════════════════════════════════════════════════════════════════════
 -- STEP 3: Row Level Security (RLS) 활성화 & 정책 설정
@@ -163,6 +195,12 @@ CREATE POLICY "프로필 삽입 - 본인만"
 CREATE POLICY "프로필 수정 - 본인만"
   ON profiles FOR UPDATE USING (auth.uid() = id);
 
+-- email은 전체 공개 SELECT 대상에서 제외 (개인정보 보호).
+-- 테이블 SELECT를 회수하고 email 외 안전한 컬럼만 GRANT. INSERT/UPDATE는 유지.
+REVOKE SELECT ON profiles FROM anon, authenticated;
+GRANT  SELECT (id, name, role, bio, job_title, company, is_available, skills, created_at)
+  ON profiles TO anon, authenticated;
+
 -- ── user_majors ───────────────────────────────────────────────────────────
 -- 선배 상세 프로필 조회 시 타인의 전공 정보 읽기 필요 → 전체 공개
 ALTER TABLE user_majors ENABLE ROW LEVEL SECURITY;
@@ -199,6 +237,45 @@ CREATE POLICY "북마크 삽입 - 본인만"
 
 CREATE POLICY "북마크 삭제 - 본인만"
   ON bookmarks FOR DELETE USING (auth.uid() = user_id);
+
+-- ── coffee_chats (Phase 4) ────────────────────────────────────────────────
+ALTER TABLE coffee_chats ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "커피챗 조회 - 당사자만"
+  ON coffee_chats FOR SELECT
+  USING (auth.uid() = student_id OR auth.uid() = senior_id);
+
+CREATE POLICY "커피챗 신청 - 학생 본인만"
+  ON coffee_chats FOR INSERT
+  WITH CHECK (auth.uid() = student_id);
+
+CREATE POLICY "커피챗 상태 변경 - 당사자만"
+  ON coffee_chats FOR UPDATE
+  USING (auth.uid() = student_id OR auth.uid() = senior_id)
+  WITH CHECK (auth.uid() = student_id OR auth.uid() = senior_id);
+
+-- ── messages (Phase 5) ────────────────────────────────────────────────────
+ALTER TABLE messages ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "메시지 조회 - 커피챗 당사자만"
+  ON messages FOR SELECT
+  USING (EXISTS (
+    SELECT 1 FROM coffee_chats c
+    WHERE c.id = messages.coffee_chat_id
+      AND (c.student_id = auth.uid() OR c.senior_id = auth.uid())
+  ));
+
+CREATE POLICY "메시지 전송 - 커피챗 당사자만"
+  ON messages FOR INSERT
+  WITH CHECK (
+    sender_id = auth.uid()
+    AND EXISTS (
+      SELECT 1 FROM coffee_chats c
+      WHERE c.id = messages.coffee_chat_id
+        AND c.status = 'accepted'
+        AND (c.student_id = auth.uid() OR c.senior_id = auth.uid())
+    )
+  );
 
 
 -- ════════════════════════════════════════════════════════════════════════

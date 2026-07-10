@@ -4,9 +4,12 @@ import { useQuery, useQueryClient } from '@tanstack/react-query'
 import type { CSSProperties } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../hooks/useAuth'
+import { useBookmarks } from '../hooks/useBookmarks'
 import DashboardNav from '../components/dashboard/DashboardNav'
 import HomeFooter from '../components/dashboard/HomeFooter'
 import ProfileSection from '../components/mypage/ProfileSection'
+import SeniorProfileSection from '../components/mypage/SeniorProfileSection'
+import CoffeeChatSection from '../components/mypage/CoffeeChatSection'
 import ScrapbookSection from '../components/mypage/ScrapbookSection'
 
 // ── 프로필 수정 모달 ──────────────────────────────────────────────────
@@ -182,6 +185,29 @@ export default function MyPage() {
     enabled: !!user,
   })
 
+  const { data: bookmarkIds = [] } = useBookmarks()
+  const { data: scrapedSeniors = [] } = useQuery({
+    queryKey: ['scrapbook_seniors', bookmarkIds],
+    queryFn: async () => {
+      if (bookmarkIds.length === 0) return []
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('id, name, user_majors(graduation_year, departments(name))')
+        .in('id', bookmarkIds)
+      if (error) throw error
+      return (data ?? []).map((row: any) => {
+        const major = Array.isArray(row.user_majors) ? row.user_majors[0] : row.user_majors
+        return {
+          id: row.id as string,
+          name: row.name as string,
+          department: major?.departments?.name as string | undefined,
+          graduationYear: major?.graduation_year as number | undefined,
+        }
+      })
+    },
+    enabled: !!user,
+  })
+
   if (loading || !user) return null
 
   const name     = (profile as any)?.name ?? '...'
@@ -239,7 +265,11 @@ export default function MyPage() {
                 </div>
               </div>
 
-              <ScrapbookSection scrapedSeniors={[]} />
+              <SeniorProfileSection role={(profile as any)?.role} />
+
+              <CoffeeChatSection />
+
+              <ScrapbookSection scrapedSeniors={scrapedSeniors} />
 
               <HomeFooter />
             </div>

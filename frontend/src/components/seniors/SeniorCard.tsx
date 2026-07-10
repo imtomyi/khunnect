@@ -1,6 +1,31 @@
 import { Link } from '@tanstack/react-router'
 import { getAvatarVariantForId, AvatarIcon } from '../../lib/avatarVariants'
+import { useBookmarks, useToggleBookmark } from '../../hooks/useBookmarks'
 import type { Senior } from '../../types/index'
+
+const bookmarkBtnStyle: React.CSSProperties = {
+  width: '40px',
+  height: '40px',
+  borderRadius: '50%',
+  border: 'none',
+  backgroundColor: '#FCF1F1',
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  cursor: 'pointer',
+  padding: 0,
+  flexShrink: 0,
+  transition: 'background-color 150ms ease',
+}
+
+function HeartIcon({ filled }: { filled: boolean }) {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill={filled ? '#9A001F' : 'none'}
+      stroke="#9A001F" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 1 0-7.78 7.78L12 21.23l8.84-8.84a5.5 5.5 0 0 0 0-7.78z" />
+    </svg>
+  )
+}
 
 const cardStyle: React.CSSProperties = {
   backgroundColor: '#FFFFFF',
@@ -125,6 +150,10 @@ export default function SeniorCard({ senior }: { senior: Senior }) {
   const avatarVariant = getAvatarVariantForId(senior.id)
   const avatarBg = senior.profileImage ? '#00000033' : avatarVariant.bg
 
+  const { data: bookmarks = [] } = useBookmarks()
+  const toggleBookmark = useToggleBookmark()
+  const isBookmarked = bookmarks.includes(senior.id)
+
   return (
     <div
       style={cardStyle}
@@ -145,9 +174,23 @@ export default function SeniorCard({ senior }: { senior: Senior }) {
             <AvatarIcon fill={avatarVariant.fill} bodyPath={avatarVariant.bodyPath} size={70} />
           )}
         </div>
-        <span style={badgeStyle(senior.isAvailable)}>
-          {senior.isAvailable ? '상담 가능' : '상담 중'}
-        </span>
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '10px' }}>
+          <button
+            type="button"
+            aria-label={isBookmarked ? '북마크 해제' : '북마크'}
+            style={bookmarkBtnStyle}
+            onClick={(e) => {
+              e.preventDefault()
+              e.stopPropagation()
+              toggleBookmark.mutate({ seniorId: senior.id, isBookmarked })
+            }}
+          >
+            <HeartIcon filled={isBookmarked} />
+          </button>
+          <span style={badgeStyle(senior.isAvailable)}>
+            {senior.isAvailable ? '상담 가능' : '상담 중'}
+          </span>
+        </div>
       </div>
 
       <p style={nameStyle}>{senior.name}</p>
