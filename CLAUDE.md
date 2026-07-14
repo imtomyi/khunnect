@@ -188,7 +188,12 @@ Phase 6 🚧  프로덕션 배포 — CD·이미지 완료. 호스팅만 남음 
 
 배포 방향 변경(2026-07-11): 시놀로지 → **가족 공용이라 접근 차단됨**.
 대체안 확정 = **지금 Render(관리형, 카드 X)로 우리 이미지 즉시 배포 → 나중에 Oracle Cloud
-Always Free ARM VM으로 이전(docker-compose + Watchtower + K8s 풀 세트)**.
+Always Free VM으로 이전(docker-compose + Watchtower + K8s 풀 세트)**.
+
+⚠️ **Oracle ARM(A1) VM으로 갈 거면 먼저 CD를 멀티아치로 바꿔야 한다.** 현재 `deploy.yml`의
+platforms는 `linux/amd64` 단일이라, ARM VM에서 pull하면 `no matching manifest for linux/arm64`로
+막힌다. VM 만들기 **전에** `platforms: linux/amd64,linux/arm64`로 수정하고 push할 것.
+(자세한 내용·대안은 `deploy/DEPLOY.md`)
 
 ```
 frontend/nginx.conf            SPA 라우팅(try_files) + gzip + 자산 캐시
