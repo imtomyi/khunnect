@@ -210,10 +210,21 @@ frontend/.env.example           환경변수 템플릿
    최신 이미지 `ghcr.io/imtomyi/khunnect-frontend:latest` (CD success). `VITE_*`는 빌드 타임에 이미지에
    구워지므로 런타임 환경변수 불필요 — **이미지만 돌리면 동작**.
 
-⏳ 남은 2가지(둘 다 사용자 UI 작업, 코드 무관):
-  1. ghcr 패키지 **Public** 전환 (GitHub 패키지 settings → Danger Zone)
-  2. Render Web Service 생성 → 이미지 `ghcr.io/imtomyi/khunnect-frontend:latest`, Port 80, Free
-  ※ anon 키는 공개용이라 Public 전환해도 안전(service_role 키는 이미지에 없음).
+✅ **배포 완료: https://khunnect.onrender.com** (Render Free / ghcr 이미지 / 자동 재배포)
+
+배포 파이프라인 (전부 자동):
+```
+main push → deploy.yml → VITE_* 주입 빌드 → ghcr push → Render Deploy Hook 호출 → 재배포
+```
+GitHub Secrets 3종: `VITE_SUPABASE_URL` · `VITE_SUPABASE_ANON_KEY` · `RENDER_DEPLOY_HOOK`
+
+⚠️ 배포 시 겪은 함정 (재발 방지):
+  - **Secret 값에 `KEY=` 접두사를 같이 붙여넣지 말 것.** `.env` 한 줄을 통째로 복사하면
+    `VITE_SUPABASE_URL=VITE_SUPABASE_URL=https://…`가 되어 `Invalid supabaseUrl`로 백지가 된다.
+    반드시 **값만** 등록.
+  - **Render Free는 15분 무접속 시 휴면** → 첫 요청 ~50초. 서비스 생성 직후 몇 분간은
+    엣지 전파 지연으로 `x-render-routing: no-server` 404가 무작위로 섞인다(정상, 곧 해소).
+  - `VITE_*`는 빌드 타임에 이미지로 구워지므로 Render 런타임 환경변수는 **불필요**.
 
 ⚠️ DB 마이그레이션 (Supabase SQL Editor에서 순서대로 실행):
   - `migrations/0001_senior_profile_fields.sql` — 선배 프로필 컬럼(bio·job_title·company·is_available·skills)
