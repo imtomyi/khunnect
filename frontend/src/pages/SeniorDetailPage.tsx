@@ -7,6 +7,8 @@ import DashboardNav from '../components/dashboard/DashboardNav'
 import HomeFooter from '../components/dashboard/HomeFooter'
 import { AvatarIcon, getAvatarVariantForId } from '../lib/avatarVariants'
 import { useCoffeeChatWith, useRequestCoffeeChat } from '../hooks/useCoffeeChats'
+import { useUserRoadmap } from '../hooks/useRoadmap'
+import RoadmapTimeline from '../components/roadmap/RoadmapTimeline'
 import { Route } from '../routes/seniors.$seniorId'
 
 const loadingStyle: CSSProperties = {
@@ -183,6 +185,9 @@ export default function SeniorDetailPage() {
   const requestChat = useRequestCoffeeChat()
   const [showModal, setShowModal] = useState(false)
 
+  // 공개된 로드맵만 RLS를 통과해 내려온다 (비공개면 null)
+  const { data: roadmap } = useUserRoadmap(seniorId)
+
   const avatarVariant = senior ? getAvatarVariantForId(senior.id) : null
 
   // 커피챗 버튼 상태 결정
@@ -271,6 +276,24 @@ export default function SeniorDetailPage() {
                       </p>
                     )}
                   </div>
+
+                  {/* 커리어 로드맵 — 이 플랫폼의 핵심. 선배가 공개한 경우에만 표시된다. */}
+                  {roadmap && roadmap.items.length > 0 && (
+                    <div style={panelStyle}>
+                      <p style={panelLabelStyle}>커리어 로드맵</p>
+                      <p style={{ fontSize: '18px', fontWeight: 600, color: '#1F1A1A', margin: '0 0 4px' }}>
+                        {roadmap.title}
+                      </p>
+                      {roadmap.summary && (
+                        <p style={{ fontSize: '14px', color: '#5C3F3F', margin: '0 0 20px', lineHeight: 1.6 }}>
+                          {roadmap.summary}
+                        </p>
+                      )}
+                      <div style={{ marginTop: roadmap.summary ? 0 : '16px' }}>
+                        <RoadmapTimeline items={roadmap.items} />
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
 

@@ -39,6 +39,32 @@ export type Message = {
   createdAt: string
 }
 
+/** 커리어 로드맵 */
+export type RoadmapItemType = '수강' | '인턴' | '프로젝트' | '대외활동' | '자격증' | '취업' | '기타'
+
+/** done = 이미 한 일(회고), planned = 앞으로 할 일(계획) */
+export type RoadmapItemStatus = 'done' | 'planned'
+
+export type RoadmapItem = {
+  id: number
+  roadmapId: number
+  year: number
+  semester: 1 | 2
+  type: RoadmapItemType
+  title: string
+  description: string | null
+  status: RoadmapItemStatus
+}
+
+export type Roadmap = {
+  id: number
+  userId: string
+  title: string
+  summary: string | null
+  isPublic: boolean
+  items: RoadmapItem[]
+}
+
 /** 과목 카탈로그 항목 */
 export type CourseType = '전공기초' | '전공필수' | '전공선택'
 

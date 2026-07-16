@@ -41,7 +41,7 @@ try { await db.exec(sql('../schema.sql')); check('schema.sql 전체 적용', tru
 catch (e) { check('schema.sql 전체 적용', false, '→ ' + e.message); report(); process.exit(1) }
 
 // 마이그레이션 idempotent 재실행
-for (const f of ['0001_senior_profile_fields', '0002_coffee_chats', '0003_messages', '0004_security_hardening']) {
+for (const f of ['0001_senior_profile_fields', '0002_coffee_chats', '0003_messages', '0004_security_hardening', '0005_roadmaps']) {
   try { await db.exec(sql(`../migrations/${f}.sql`)); check(`migration ${f} (재실행)`, true) }
   catch (e) { check(`migration ${f}`, false, '→ ' + e.message) }
 }
@@ -97,6 +97,46 @@ check('P5 RLS 제3자 메시지 전송 차단', !!(await T(U, `INSERT INTO messa
 await T(U, `INSERT INTO coffee_chats(student_id,senior_id,message) VALUES($1,$2,'hi')`, [U, A])
 { const pend = (await db.query(`SELECT id FROM coffee_chats WHERE student_id=$1 AND status='pending'`, [U])).rows[0].id
   check('P5 미수락 채팅 전송 차단', !!(await T(U, `INSERT INTO messages(coffee_chat_id,sender_id,content) VALUES($1,$2,'x')`, [pend, U])).error) }
+
+// ── 커리어 로드맵 ──
+let rmA
+{ const r = await T(A, `INSERT INTO roadmaps(user_id) VALUES($1) RETURNING id, is_public, title`, [A])
+  check('RM 로드맵 생성(본인)', !r.error); rmA = r.data?.[0]?.id
+  check('RM 기본 비공개(is_public=false)', r.data?.[0]?.is_public === false)
+  check('RM 기본 제목', r.data?.[0]?.title === '나의 커리어 로드맵') }
+check('RM 타인 명의 로드맵 생성 차단', !!(await T(U, `INSERT INTO roadmaps(user_id) VALUES($1)`, [A])).error)
+check('RM 유저당 1개(UNIQUE)', !!(await T(A, `INSERT INTO roadmaps(user_id) VALUES($1)`, [A])).error)
+
+// 항목 추가 — 회고(done) / 계획(planned) 둘 다
+await T(A, `INSERT INTO roadmap_items(roadmap_id,year,semester,type,title,status) VALUES($1,2,1,'인턴','네이버 인턴','done')`, [rmA])
+await T(A, `INSERT INTO roadmap_items(roadmap_id,year,semester,type,title,status) VALUES($1,4,2,'취업','정규직 전환','planned')`, [rmA])
+check('RM 항목 추가(done+planned)', (await T(A, `SELECT id FROM roadmap_items WHERE roadmap_id=$1`, [rmA])).data?.length === 2)
+check('RM 잘못된 type 차단(CHECK)', !!(await T(A, `INSERT INTO roadmap_items(roadmap_id,year,semester,type,title) VALUES($1,1,1,'해킹','x')`, [rmA])).error)
+check('RM 잘못된 학기 차단(CHECK)', !!(await T(A, `INSERT INTO roadmap_items(roadmap_id,year,semester,type,title) VALUES($1,1,3,'수강','x')`, [rmA])).error)
+check('RM 빈 제목 차단(CHECK)', !!(await T(A, `INSERT INTO roadmap_items(roadmap_id,year,semester,type,title) VALUES($1,1,1,'수강','   ')`, [rmA])).error)
+
+// 핵심: 비공개 경계
+check('RM 비공개 로드맵 타인에게 숨김', (await T(U, `SELECT id FROM roadmaps WHERE id=$1`, [rmA])).data?.length === 0)
+check('RM 비공개 항목 타인에게 숨김', (await T(U, `SELECT id FROM roadmap_items WHERE roadmap_id=$1`, [rmA])).data?.length === 0)
+check('RM 비공개라도 본인은 조회', (await T(A, `SELECT id FROM roadmaps WHERE id=$1`, [rmA])).data?.length === 1)
+
+// 공개 전환 후
+await T(A, `UPDATE roadmaps SET is_public=TRUE WHERE id=$1`, [rmA])
+check('RM 공개 후 타인 조회 가능', (await T(U, `SELECT id FROM roadmaps WHERE id=$1`, [rmA])).data?.length === 1)
+check('RM 공개 후 항목도 조회 가능', (await T(U, `SELECT id FROM roadmap_items WHERE roadmap_id=$1`, [rmA])).data?.length === 2)
+check('RM 공개돼도 타인 수정 차단', (await T(U, `UPDATE roadmaps SET title='해킹' WHERE id=$1`, [rmA])).data !== null
+  && (await db.query(`SELECT title FROM roadmaps WHERE id=$1`, [rmA])).rows[0].title === '나의 커리어 로드맵')
+check('RM 공개돼도 타인 항목 추가 차단', !!(await T(U, `INSERT INTO roadmap_items(roadmap_id,year,semester,type,title) VALUES($1,1,1,'수강','침입')`, [rmA])).error)
+{ const before = (await db.query(`SELECT count(*)::int c FROM roadmap_items WHERE roadmap_id=$1`, [rmA])).rows[0].c
+  await T(U, `DELETE FROM roadmap_items WHERE roadmap_id=$1`, [rmA])
+  const after = (await db.query(`SELECT count(*)::int c FROM roadmap_items WHERE roadmap_id=$1`, [rmA])).rows[0].c
+  check('RM 공개돼도 타인 항목 삭제 차단', before === after && after === 2) }
+
+// 본인 편집 + CASCADE
+await T(A, `UPDATE roadmap_items SET status='done' WHERE roadmap_id=$1 AND status='planned'`, [rmA])
+check('RM 본인 항목 상태 변경(계획→완료)', (await T(A, `SELECT id FROM roadmap_items WHERE roadmap_id=$1 AND status='done'`, [rmA])).data?.length === 2)
+await T(A, `DELETE FROM roadmaps WHERE id=$1`, [rmA])
+check('RM 로드맵 삭제 시 항목 CASCADE', (await db.query(`SELECT id FROM roadmap_items WHERE roadmap_id=$1`, [rmA])).rows.length === 0)
 
 function report() {
   console.log('\n════ khunnect DB 테스트 (실제 Postgres/PGlite) ════\n')
