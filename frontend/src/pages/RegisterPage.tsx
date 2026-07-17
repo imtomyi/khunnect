@@ -3,7 +3,7 @@ import type { CSSProperties } from 'react'
 import { useNavigate, Link } from '@tanstack/react-router'
 import { supabase } from '../lib/supabase'
 import { BRAND } from '../lib/constants'
-import { useColleges, useDepartments } from '../hooks/useDepartments'
+import { useColleges, useDepartments, useTracks } from '../hooks/useDepartments'
 import AuthLayout from '../components/auth/AuthLayout'
 
 const labelStyle: CSSProperties = {
@@ -35,6 +35,7 @@ export default function RegisterPage() {
   const [studentId, setStudentId] = useState('')
   const [collegeId, setCollegeId] = useState<number | null>(null)
   const [departmentId, setDepartmentId] = useState<number | null>(null)
+  const [trackId, setTrackId] = useState<number | null>(null)
   const [role, setRole] = useState<'student' | 'alumni'>('student')
   const [graduationYear, setGraduationYear] = useState('')
   const [errors, setErrors] = useState<Record<string, string>>({})
@@ -47,6 +48,11 @@ export default function RegisterPage() {
 
   const { data: colleges } = useColleges()
   const { data: departments } = useDepartments(collegeId)
+  const { data: tracks } = useTracks(departmentId)
+
+  // 트랙이 있는 학과에서만 트랙을 묻는다 (departments.has_tracks)
+  const selectedDept = departments?.find((d) => d.id === departmentId)
+  const showTracks = !!selectedDept?.has_tracks
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -94,7 +100,8 @@ export default function RegisterPage() {
     const { error: majorError } = await supabase.from('user_majors').insert({
       user_id: authData.user.id,
       department_id: departmentId,
-      track_id: null,
+      // 트랙 없는 학과이거나 아직 정하지 않았으면 null (선택사항)
+      track_id: showTracks ? trackId : null,
       type: 'major',
       admission_year: admissionYear,
       graduation_year: role === 'alumni' ? parseInt(graduationYear) : null,
@@ -189,6 +196,7 @@ export default function RegisterPage() {
               onChange={(e) => {
                 setCollegeId(e.target.value ? Number(e.target.value) : null)
                 setDepartmentId(null)
+                setTrackId(null)
                 clearFieldError('college')
               }}
               style={{ color: collegeId ? '#1F1A1A' : '#C9A0A0', cursor: 'pointer' }}
@@ -207,6 +215,7 @@ export default function RegisterPage() {
               value={departmentId ?? ''}
               onChange={(e) => {
                 setDepartmentId(e.target.value ? Number(e.target.value) : null)
+                setTrackId(null) // 학과가 바뀌면 이전 학과의 트랙은 무효
                 clearFieldError('department')
               }}
               style={{ color: departmentId ? '#1F1A1A' : '#C9A0A0', cursor: 'pointer' }}
@@ -221,6 +230,23 @@ export default function RegisterPage() {
           </div>
         </div>
 
+        {/* 트랙 — 트랙제 학과에서만. 아직 안 정했을 수 있으므로 선택사항 */}
+        {showTracks && (
+          <div style={fieldStyle}>
+            <label style={labelStyle}>트랙 (Track) · 선택사항</label>
+            <select
+              className="auth-input"
+              value={trackId ?? ''}
+              onChange={(e) => setTrackId(e.target.value ? Number(e.target.value) : null)}
+              style={{ color: trackId ? '#1F1A1A' : '#C9A0A0', cursor: 'pointer' }}
+            >
+              <option value="" style={{ color: '#1F1A1A' }}>아직 정하지 않음</option>
+              {tracks?.map((t) => (
+                <option key={t.id} value={t.id} style={{ color: '#1F1A1A' }}>{t.name}</option>
+              ))}
+            </select>
+          </div>
+        )}
 
         <div style={fieldStyle}>
           <label style={labelStyle}>재학/졸업 여부 (Status)</label>
