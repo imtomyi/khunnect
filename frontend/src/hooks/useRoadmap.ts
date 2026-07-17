@@ -1,7 +1,14 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '../lib/supabase'
+import { mapMajors } from '../lib/majors'
 import { useAuth } from './useAuth'
-import type { Roadmap, RoadmapItem, RoadmapItemType, RoadmapItemStatus } from '../types/index'
+import type {
+  Roadmap,
+  RoadmapItem,
+  RoadmapItemType,
+  RoadmapItemStatus,
+  PublicRoadmap,
+} from '../types/index'
 
 function mapItem(r: any): RoadmapItem {
   return {
@@ -46,6 +53,56 @@ export function useMyRoadmap() {
     queryKey: ['roadmap', user?.id],
     queryFn: () => fetchRoadmapBy('user_id', user!.id),
     enabled: !!user,
+  })
+}
+
+/**
+ * 공개 로드맵 목록 (탐색 화면).
+ * is_public 필터를 걸지만, 걸지 않아도 RLS가 비공개를 내려주지 않는다 —
+ * 즉 클라이언트 필터에 의존하지 않는다(0005 정책, test:db에서 검증).
+ */
+export function usePublicRoadmaps() {
+  return useQuery({
+    queryKey: ['public_roadmaps'],
+    queryFn: async (): Promise<PublicRoadmap[]> => {
+      const { data, error } = await supabase
+        .from('roadmaps')
+        .select(`
+          id, user_id, title, summary, is_public,
+          roadmap_items(*),
+          profiles!inner(
+            name, role, job_title, company,
+            user_majors(type, graduation_year, departments(name))
+          )
+        `)
+        .eq('is_public', true)
+        .order('updated_at', { ascending: false })
+      if (error) throw error
+
+      return (data ?? []).map((r: any): PublicRoadmap => {
+        const p = Array.isArray(r.profiles) ? r.profiles[0] : r.profiles
+        const { departments, graduationYear } = mapMajors(p?.user_majors)
+        const items = (r.roadmap_items ?? []).map(mapItem)
+        items.sort(
+          (a: RoadmapItem, b: RoadmapItem) =>
+            a.year - b.year || a.semester - b.semester || a.id - b.id,
+        )
+        return {
+          id: r.id,
+          userId: r.user_id,
+          title: r.title,
+          summary: r.summary ?? null,
+          isPublic: r.is_public,
+          items,
+          ownerName: p?.name ?? '이름 없음',
+          ownerRole: p?.role ?? 'student',
+          ownerDepartments: departments,
+          ownerGraduationYear: graduationYear,
+          ownerJobTitle: p?.job_title ?? null,
+          ownerCompany: p?.company ?? null,
+        }
+      })
+    },
   })
 }
 

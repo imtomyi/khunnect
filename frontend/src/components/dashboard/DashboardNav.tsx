@@ -34,7 +34,8 @@ export default function DashboardNav() {
             {([
               { label: '커리큘럼 계산기', to: '/curriculum' },
               { label: '선배와의 연결',   to: '/explore'    },
-              { label: '커리어 로드맵',   to: '/roadmap'    },
+              { label: '로드맵 탐색',     to: '/roadmaps'   },
+              { label: '내 로드맵',       to: '/roadmap'    },
             ] as const).map(({ label, to }) => (
               <Link
                 key={label}

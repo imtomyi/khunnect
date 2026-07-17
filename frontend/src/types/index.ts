@@ -66,6 +66,17 @@ export type Roadmap = {
   items: RoadmapItem[]
 }
 
+/** 공개 로드맵 탐색(/roadmaps)용 — 로드맵 + 작성자 정보 */
+export type PublicRoadmap = Roadmap & {
+  ownerName: string
+  ownerRole: 'student' | 'alumni'
+  /** 작성자 전공 (주전공 우선). 표시는 formatDepartments 사용 */
+  ownerDepartments: string[]
+  ownerGraduationYear?: number
+  ownerJobTitle?: string | null
+  ownerCompany?: string | null
+}
+
 /** 과목 카탈로그 항목 */
 export type CourseType = '전공기초' | '전공필수' | '전공선택'
 
