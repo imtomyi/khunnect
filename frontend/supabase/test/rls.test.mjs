@@ -41,7 +41,7 @@ try { await db.exec(sql('../schema.sql')); check('schema.sql 전체 적용', tru
 catch (e) { check('schema.sql 전체 적용', false, '→ ' + e.message); report(); process.exit(1) }
 
 // 마이그레이션 idempotent 재실행
-for (const f of ['0001_senior_profile_fields', '0002_coffee_chats', '0003_messages', '0004_security_hardening', '0005_roadmaps']) {
+for (const f of ['0001_senior_profile_fields', '0002_coffee_chats', '0003_messages', '0004_security_hardening', '0005_roadmaps', '0006_khu_departments']) {
   try { await db.exec(sql(`../migrations/${f}.sql`)); check(`migration ${f} (재실행)`, true) }
   catch (e) { check(`migration ${f}`, false, '→ ' + e.message) }
 }
@@ -137,6 +137,42 @@ await T(A, `UPDATE roadmap_items SET status='done' WHERE roadmap_id=$1 AND statu
 check('RM 본인 항목 상태 변경(계획→완료)', (await T(A, `SELECT id FROM roadmap_items WHERE roadmap_id=$1 AND status='done'`, [rmA])).data?.length === 2)
 await T(A, `DELETE FROM roadmaps WHERE id=$1`, [rmA])
 check('RM 로드맵 삭제 시 항목 CASCADE', (await db.query(`SELECT id FROM roadmap_items WHERE roadmap_id=$1`, [rmA])).rows.length === 0)
+
+// ── 학과 시드 (0006) ──
+// 마이그레이션은 위에서 이미 '재실행'까지 마쳤다 → 아래 수치가 곧 idempotent 증거다.
+{ const c = (await db.query(`SELECT count(*)::int n FROM colleges WHERE campus='국제캠퍼스'`)).rows[0].n
+  check('DEPT 국제캠 단과대학 9개', c === 9, `→ ${c}`) }
+{ const d = (await db.query(`SELECT count(*)::int n FROM departments`)).rows[0].n
+  check('DEPT 학과/학부 46개 (재실행해도 중복 없음)', d === 46, `→ ${d}`) }
+// 학부(4)를 뺀 나머지가 '학과'. 이름으로 판별할 때 '아시아학과(글로벌한국학과)'처럼
+// 괄호로 끝나는 이름이 있어 LIKE '%학과'로는 새는 점에 주의.
+{ const bu = (await db.query(`SELECT count(*)::int n FROM departments WHERE name LIKE '%학부'`)).rows[0].n
+  check('DEPT 학부 4개', bu === 4, `→ ${bu}`) }
+{ const n = (await db.query(`SELECT count(*)::int n FROM departments WHERE name NOT LIKE '%학부'`)).rows[0].n
+  check('DEPT 학과 42개 = 공식 모집요강(국제 42개)과 일치', n === 42, `→ ${n}`) }
+
+// 기존 데이터 보존 — 여기가 깨지면 과목·졸업요건·유저 전공이 전부 날아간다
+{ const r = (await db.query(`SELECT name, has_tracks FROM departments WHERE id=1`)).rows[0]
+  check('DEPT 소융학과 id=1 보존', r?.name === '소프트웨어융합학과' && r?.has_tracks === true, JSON.stringify(r)) }
+{ const n = (await db.query(`SELECT count(*)::int n FROM course_catalog WHERE department_id=1`)).rows[0].n
+  check('DEPT 기존 과목 25개 유지', n === 25, `→ ${n}`) }
+{ const n = (await db.query(`SELECT count(*)::int n FROM tracks WHERE department_id=1`)).rows[0].n
+  check('DEPT 기존 트랙 4개 유지', n === 4, `→ ${n}`) }
+{ const n = (await db.query(`SELECT count(*)::int n FROM curriculum_requirements WHERE department_id=1`)).rows[0].n
+  check('DEPT 기존 졸업요건 유지', n === 1, `→ ${n}`) }
+{ const n = (await db.query(`SELECT count(*)::int n FROM departments WHERE name='소프트웨어융합학과'`)).rows[0].n
+  check('DEPT 소융학과 중복 생성 안 됨', n === 1, `→ ${n}`) }
+
+// 유니크 제약이 실제로 걸렸나
+{ let blocked = false
+  try { await db.exec(`INSERT INTO departments(college_id,name) VALUES (1,'소프트웨어융합학과')`) }
+  catch { blocked = true }
+  check('DEPT 학과 중복 삽입 차단(UNIQUE)', blocked) }
+
+// 새 학과가 조회되나 (가입 화면에서 쓰는 경로)
+{ const r = await T(S, `SELECT d.name FROM departments d JOIN colleges c ON c.id=d.college_id
+                        WHERE c.name='체육대학' ORDER BY d.name`)
+  check('DEPT 체육대학 5개 학과 조회', r.data?.length === 5, `→ ${r.data?.length}`) }
 
 function report() {
   console.log('\n════ khunnect DB 테스트 (실제 Postgres/PGlite) ════\n')
