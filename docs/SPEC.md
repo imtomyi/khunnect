@@ -40,7 +40,9 @@
 | 경로 | 인증 | 상태 |
 |---|---|---|
 | `/` | 공개 | ✅ 랜딩 |
-| `/login` | 공개 | ✅ (단, 비밀번호 찾기 결함 — §6.1) |
+| `/login` | 공개 | ✅ |
+| `/forgot-password` | 공개 | ✅ 재설정 링크 요청 |
+| `/reset-password` | 공개(토큰) | ✅ 새 비밀번호 설정 |
 | `/register` | 공개 | 🚧 트랙 미저장 (§6.2) |
 | `/home` | 필요 | ✅ 대시보드 |
 | `/curriculum` | 필요 | ✅ 과목 체크·졸업요건 |
@@ -277,8 +279,8 @@ roadmaps(user_id UNIQUE, title, summary, is_public=false)
 **원칙: 선순환을 강하게 하는 것 > 피그마에 있는 것**
 
 ### 1순위 — 결손 메우기 (며칠)
-1. **비밀번호 찾기** (§6.1) — 현재 **가짜 링크**. 비번 잊으면 계정 복구 불가. 실사용 차단 요소.
-2. **회원가입 트랙 저장** (§6.2) — `track_id: null` 제거. D3의 선행조건.
+1. ~~**비밀번호 찾기** (§6.1)~~ — ✅ **완료 (2026-07-17)**
+2. **회원가입 트랙 저장** (§6.2) — `track_id: null` 제거. D3의 선행조건. ← **다음**
 
 ### 2순위 — 선순환 완성
 3. **로드맵 탐색 화면** (D2) — 지금 로드맵은 만들어도 아무도 못 찾는다.
@@ -303,13 +305,20 @@ roadmaps(user_id UNIQUE, title, summary, is_public=false)
 
 ## 6. 알려진 결함
 
-### 6.1 비밀번호 찾기가 가짜 링크 — 🔴 심각
-`LoginPage.tsx:117`
-```tsx
-<Link to="/register">비밀번호 찾기</Link>   // 회원가입으로 보냄
-```
-`supabase.auth.resetPasswordForEmail` 구현이 **전혀 없다**. 비번을 잊으면
-복구 수단이 없다(실제로 개발 중 겪음). 재설정 페이지도 필요(`/reset-password`).
+### 6.1 비밀번호 찾기 — ✅ 해결 (2026-07-17)
+~~`비밀번호 찾기`가 `/register`로 보내는 가짜 링크였고 `resetPasswordForEmail`
+구현이 없어 계정 복구가 불가능했다.~~
+
+`/forgot-password`(메일 요청) + `/reset-password`(새 비번 설정) 구현 완료.
+메일 발송까지 실제 검증됨.
+
+⚠️ **이 기능은 Supabase 대시보드 설정에 의존한다.** Authentication → URL Configuration:
+- Site URL: `https://khunnect.onrender.com`
+- Redirect URLs: `https://khunnect.onrender.com/**`, `http://localhost:5179/**`
+
+승인 목록에 없는 `redirectTo`는 **조용히 거부되고** Site URL로 폴백한다.
+설정 전에는 Site URL이 `localhost:3000`이라 메일 링크가 죽은 주소로 갔다.
+**로컬 dev 포트를 바꾸면 Redirect URLs에도 추가해야 한다.**
 
 ### 6.2 회원가입이 트랙을 버림 — 🟡
 `RegisterPage.tsx:97` — `track_id: null` 하드코딩.
