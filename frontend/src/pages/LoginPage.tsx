@@ -114,7 +114,7 @@ export default function LoginPage() {
         </button>
 
         <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', color: '#78716C' }}>
-          <Link to="/register" style={{ color: '#78716C', textDecoration: 'none' }}>비밀번호 찾기</Link>
+          <Link to="/forgot-password" style={{ color: '#78716C', textDecoration: 'none' }}>비밀번호 찾기</Link>
           <Link to="/register" style={{ color: BRAND, fontWeight: 600, textDecoration: 'none' }}>회원가입</Link>
         </div>
 
