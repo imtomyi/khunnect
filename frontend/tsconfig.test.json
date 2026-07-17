@@ -1,0 +1,16 @@
+// 단위 테스트 전용 — node 환경에서 tsx로 실행된다.
+// 앱 빌드(tsconfig.app.json)는 __tests__ 를 제외하므로 여기서 타입체크한다.
+{
+  "compilerOptions": {
+    "target": "es2023",
+    "lib": ["ES2023"],
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "types": ["node"],
+    "skipLibCheck": true,
+    "verbatimModuleSyntax": true,
+    "noEmit": true,
+    "strict": true
+  },
+  "include": ["src/**/__tests__/**", "src/lib/**"]
+}

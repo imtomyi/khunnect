@@ -21,5 +21,7 @@
     "erasableSyntaxOnly": true,
     "noFallthroughCasesInSwitch": true
   },
-  "include": ["src"]
+  // 테스트는 node에서 실행되므로 브라우저 앱 빌드에서 제외한다 (tsconfig.test.json이 담당)
+  "include": ["src"],
+  "exclude": ["src/**/__tests__/**"]
 }

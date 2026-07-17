@@ -7,7 +7,8 @@
 export type Senior = {
   id: string
   name: string
-  department?: string
+  /** 전공 학과 (주전공 우선, 복수전공·부전공 포함). 표시는 formatDepartments 사용 */
+  departments: string[]
   graduationYear?: number
   skills: string[]
   isAvailable: boolean

@@ -1,5 +1,6 @@
 import { Link } from '@tanstack/react-router'
 import { getAvatarVariantForId, AvatarIcon } from '../../lib/avatarVariants'
+import { formatDepartments } from '../../lib/majors'
 import { useBookmarks, useToggleBookmark } from '../../hooks/useBookmarks'
 import type { Senior } from '../../types/index'
 
@@ -196,7 +197,10 @@ export default function SeniorCard({ senior }: { senior: Senior }) {
       <p style={nameStyle}>{senior.name}</p>
 
       <p style={deptStyle}>
-        {[senior.department, senior.graduationYear ? `${senior.graduationYear}년 졸업` : null]
+        {[
+          formatDepartments(senior.departments),
+          senior.graduationYear ? `${senior.graduationYear}년 졸업` : null,
+        ]
           .filter(Boolean)
           .join(' · ')}
       </p>

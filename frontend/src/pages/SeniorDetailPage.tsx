@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import type { CSSProperties } from 'react'
 import { supabase } from '../lib/supabase'
+import { mapMajors, formatDepartments } from '../lib/majors'
 import type { Senior } from '../types/index'
 import DashboardNav from '../components/dashboard/DashboardNav'
 import HomeFooter from '../components/dashboard/HomeFooter'
@@ -150,7 +151,7 @@ async function fetchSeniorDetail(seniorId: string): Promise<Senior> {
     .from('profiles')
     .select(`
       id, name, bio, job_title, company, is_available, skills,
-      user_majors(graduation_year, departments(name))
+      user_majors(type, graduation_year, departments(name))
     `)
     .eq('id', seniorId)
     .single()
@@ -158,12 +159,12 @@ async function fetchSeniorDetail(seniorId: string): Promise<Senior> {
   if (error || !data) throw error ?? new Error('선배 정보를 찾을 수 없습니다.')
 
   const row = data as any
-  const majorInfo = Array.isArray(row.user_majors) ? row.user_majors[0] : row.user_majors
+  const { departments, graduationYear } = mapMajors(row.user_majors)
   return {
     id: row.id as string,
     name: row.name as string,
-    department: majorInfo?.departments?.name as string | undefined,
-    graduationYear: majorInfo?.graduation_year as number | undefined,
+    departments,
+    graduationYear,
     skills: (row.skills as string[] | null) ?? [],
     isAvailable: (row.is_available as boolean | null) ?? true,
     bio: row.bio as string | null,
@@ -227,7 +228,10 @@ export default function SeniorDetailPage() {
                   <div>
                     <p style={nameStyle}>{senior.name}</p>
                     <p style={deptStyle}>
-                      {[senior.department, senior.graduationYear ? `${senior.graduationYear}년 졸업` : null]
+                      {[
+                        formatDepartments(senior.departments),
+                        senior.graduationYear ? `${senior.graduationYear}년 졸업` : null,
+                      ]
                         .filter(Boolean)
                         .join(' · ')}
                     </p>

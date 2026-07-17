@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import type { CSSProperties } from 'react'
 import { supabase } from '../lib/supabase'
+import { mapMajors } from '../lib/majors'
 import type { Senior } from '../types/index'
 import DashboardNav from '../components/dashboard/DashboardNav'
 import HomeFooter from '../components/dashboard/HomeFooter'
@@ -83,21 +84,19 @@ async function fetchSeniors(dept?: string): Promise<Senior[]> {
       company,
       is_available,
       skills,
-      user_majors(graduation_year, departments(name))
+      user_majors(type, graduation_year, departments(name))
     `)
     .eq('role', 'alumni')
 
   if (error) throw error
 
   const mapped: Senior[] = (data || []).map((row: any) => {
-    const majorInfo = Array.isArray(row.user_majors) ? row.user_majors[0] : row.user_majors
-    const deptName = majorInfo?.departments?.name as string | undefined
-    const gradYear = majorInfo?.graduation_year as number | undefined
+    const { departments, graduationYear } = mapMajors(row.user_majors)
     return {
       id: row.id as string,
       name: row.name as string,
-      department: deptName,
-      graduationYear: gradYear,
+      departments,
+      graduationYear,
       skills: (row.skills as string[] | null) ?? [],
       isAvailable: (row.is_available as boolean | null) ?? true,
       bio: row.bio as string | null,
@@ -107,7 +106,8 @@ async function fetchSeniors(dept?: string): Promise<Senior[]> {
     }
   })
 
-  return dept ? mapped.filter(s => s.department === dept) : mapped
+  // 복수전공자는 해당 학과 어느 쪽으로 찾아도 나와야 한다
+  return dept ? mapped.filter((s) => s.departments.includes(dept)) : mapped
 }
 
 export default function ExplorePage({ dept }: { dept?: string }) {
@@ -121,16 +121,17 @@ export default function ExplorePage({ dept }: { dept?: string }) {
   const [query, setQuery] = useState('')
 
   // 선배 목록에서 학과 목록 도출 (전체 + 등장하는 학과들)
+  // 복수전공자는 소속된 모든 학과에 집계된다
   const departments = useMemo(() => {
     const set = new Set<string>()
-    seniors.forEach((s) => s.department && set.add(s.department))
+    seniors.forEach((s) => s.departments.forEach((d) => set.add(d)))
     return ['전체', ...Array.from(set).sort()]
   }, [seniors])
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase()
     return seniors.filter((s) => {
-      if (deptFilter !== '전체' && s.department !== deptFilter) return false
+      if (deptFilter !== '전체' && !s.departments.includes(deptFilter)) return false
       if (availableOnly && !s.isAvailable) return false
       if (q && !s.name.toLowerCase().includes(q)) return false
       return true

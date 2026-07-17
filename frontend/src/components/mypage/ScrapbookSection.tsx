@@ -1,10 +1,11 @@
 import { Link } from '@tanstack/react-router'
 import type { CSSProperties } from 'react'
+import { formatDepartments } from '../../lib/majors'
 
 type ScrapedSenior = {
   id: string
   name: string
-  department?: string
+  departments: string[]
   graduationYear?: number
 }
 
@@ -114,7 +115,10 @@ export default function ScrapbookSection({ scrapedSeniors }: ScrapbookSectionPro
                   <div>
                     <p style={seniorNameStyle}>{senior.name} 선배님</p>
                     <p style={seniorSubStyle}>
-                      {[senior.department, senior.graduationYear ? `${senior.graduationYear}년 졸업` : null]
+                      {[
+                        formatDepartments(senior.departments),
+                        senior.graduationYear ? `${senior.graduationYear}년 졸업` : null,
+                      ]
                         .filter(Boolean)
                         .join(' · ')}
                     </p>

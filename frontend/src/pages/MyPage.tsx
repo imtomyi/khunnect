@@ -3,6 +3,7 @@ import { useNavigate } from '@tanstack/react-router'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import type { CSSProperties } from 'react'
 import { supabase } from '../lib/supabase'
+import { mapMajors } from '../lib/majors'
 import { useAuth } from '../hooks/useAuth'
 import { useBookmarks } from '../hooks/useBookmarks'
 import DashboardNav from '../components/dashboard/DashboardNav'
@@ -192,16 +193,16 @@ export default function MyPage() {
       if (bookmarkIds.length === 0) return []
       const { data, error } = await supabase
         .from('profiles')
-        .select('id, name, user_majors(graduation_year, departments(name))')
+        .select('id, name, user_majors(type, graduation_year, departments(name))')
         .in('id', bookmarkIds)
       if (error) throw error
       return (data ?? []).map((row: any) => {
-        const major = Array.isArray(row.user_majors) ? row.user_majors[0] : row.user_majors
+        const { departments, graduationYear } = mapMajors(row.user_majors)
         return {
           id: row.id as string,
           name: row.name as string,
-          department: major?.departments?.name as string | undefined,
-          graduationYear: major?.graduation_year as number | undefined,
+          departments,
+          graduationYear,
         }
       })
     },
