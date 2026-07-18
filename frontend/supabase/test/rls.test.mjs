@@ -41,7 +41,7 @@ try { await db.exec(sql('../schema.sql')); check('schema.sql 전체 적용', tru
 catch (e) { check('schema.sql 전체 적용', false, '→ ' + e.message); report(); process.exit(1) }
 
 // 마이그레이션 idempotent 재실행
-for (const f of ['0001_senior_profile_fields', '0002_coffee_chats', '0003_messages', '0004_security_hardening', '0005_roadmaps', '0006_khu_departments']) {
+for (const f of ['0001_senior_profile_fields', '0002_coffee_chats', '0003_messages', '0004_security_hardening', '0005_roadmaps', '0006_khu_departments', '0007_curriculum_versions']) {
   try { await db.exec(sql(`../migrations/${f}.sql`)); check(`migration ${f} (재실행)`, true) }
   catch (e) { check(`migration ${f}`, false, '→ ' + e.message) }
 }
@@ -173,6 +173,50 @@ check('RM 로드맵 삭제 시 항목 CASCADE', (await db.query(`SELECT id FROM 
 { const r = await T(S, `SELECT d.name FROM departments d JOIN colleges c ON c.id=d.college_id
                         WHERE c.name='체육대학' ORDER BY d.name`)
   check('DEPT 체육대학 5개 학과 조회', r.data?.length === 5, `→ ${r.data?.length}`) }
+
+// ── 교육과정 버전 모델 (0007) ──
+// 마이그레이션은 위에서 재실행까지 마쳤다 → idempotent 이관을 검증한다.
+{ const n = (await db.query(`SELECT count(*)::int n FROM curriculum_versions WHERE department_id=1`)).rows[0].n
+  check('CV 소융 버전 1개만 (재이관 안 함)', n === 1, `→ ${n}`) }
+{ const v = (await db.query(`SELECT id, year_start, year_end FROM curriculum_versions WHERE department_id=1`)).rows[0]
+  check('CV 소융 버전 연도구간(2018~현행)', v?.year_start === 2018 && v?.year_end === null, JSON.stringify(v)) }
+
+// 무손실 이관 — 여기가 깨지면 기존 커리큘럼이 날아간다
+{ const total = (await db.query(`SELECT count(*)::int n FROM course_catalog WHERE department_id=1`)).rows[0].n
+  const linked = (await db.query(`SELECT count(*)::int n FROM course_catalog WHERE department_id=1 AND version_id IS NOT NULL`)).rows[0].n
+  check('CV 기존 과목 25개 전부 버전에 연결', total === 25 && linked === 25, `total=${total} linked=${linked}`) }
+{ const r = (await db.query(`
+    SELECT r.basic_credits, r.required_credits, r.industry_credits, r.elective_credits, r.track
+    FROM curriculum_version_requirements r
+    JOIN curriculum_versions v ON v.id=r.version_id WHERE v.department_id=1`)).rows[0]
+  check('CV 요건 이관(single, 27/18/0/15)',
+    r?.track==='single' && r?.basic_credits===27 && r?.required_credits===18
+    && r?.industry_credits===0 && r?.elective_credits===15, JSON.stringify(r)) }
+
+// 새 이수구분(산학필수)이 실제로 허용되나
+{ const v = (await db.query(`SELECT id FROM curriculum_versions WHERE department_id=1`)).rows[0].id
+  let ok = false
+  try { await db.exec(`INSERT INTO course_catalog(department_id,version_id,name,type,credits) VALUES(1,${v},'산학협력프로젝트','산학필수',3)`); ok = true } catch {}
+  check('CV 산학필수 이수구분 허용', ok) }
+{ let blocked = false
+  try { await db.exec(`INSERT INTO course_catalog(department_id,name,type,credits) VALUES(1,'x','해킹구분',3)`) } catch { blocked = true }
+  check('CV 잘못된 이수구분 차단(CHECK)', blocked) }
+
+// 부가조건 구조화
+{ const v = (await db.query(`SELECT id FROM curriculum_versions WHERE department_id=1`)).rows[0].id
+  await db.exec(`INSERT INTO curriculum_extra_requirements(version_id,kind,label,count_required,applies_from)
+                 VALUES(${v},'english_lecture','전공 영어강좌 3과목 이상',3,2008)`)
+  const r = (await db.query(`SELECT kind,count_required,applies_from FROM curriculum_extra_requirements WHERE version_id=${v}`)).rows[0]
+  check('CV 부가조건(영어강좌 3, 2008학번~)', r?.kind==='english_lecture' && r?.count_required===3 && r?.applies_from===2008) }
+
+// 입학년도 → 버전 매칭 (실제 화면이 쓸 경로)
+{ const r = (await db.query(`
+    SELECT id FROM curriculum_versions
+    WHERE department_id=1 AND year_start <= 2021 AND (year_end IS NULL OR year_end >= 2021)`)).rows
+  check('CV 2021학번 → 소융 현행버전 매칭', r.length === 1, `→ ${r.length}`) }
+
+// 버전 조회 권한 (익명도 읽어야 가입 전 커리큘럼 미리보기 가능)
+check('CV anon 버전 조회 가능', !(await T(S, `SELECT id FROM curriculum_versions WHERE department_id=1`)).error)
 
 function report() {
   console.log('\n════ khunnect DB 테스트 (실제 Postgres/PGlite) ════\n')
