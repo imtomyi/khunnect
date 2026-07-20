@@ -13,9 +13,11 @@ import HomeFooter from '../components/dashboard/HomeFooter'
 type ProgressData = {
   basic:    { completed: number; total: number }
   required: { completed: number; total: number }
+  industry: { completed: number; total: number }
   elective: { completed: number; total: number }
   overallPct: number
-  recentCourses: { id: string; name: string; code: string; credits: number; type: '전공필수' | '전공기초' | '전공선택' }[]
+  hasCurriculum: boolean
+  recentCourses: { id: string; name: string; code: string; credits: number; type: '전공필수' | '전공기초' | '산학필수' | '전공선택' }[]
 }
 
 export default function HomePage() {
@@ -54,45 +56,64 @@ export default function HomePage() {
   })
 
   const { data: progress } = useQuery<ProgressData>({
-    queryKey: ['progress', user?.id, userMajor?.department_id],
+    queryKey: ['progress', user?.id, userMajor?.department_id, userMajor?.admission_year],
     queryFn: async () => {
       const deptId = userMajor?.department_id
+      const admission = userMajor?.admission_year as number | null
 
-      // 졸업 요건 + 체크된 과목 병렬 조회
-      const [reqRes, checkedRes] = await Promise.all([
-        deptId
-          ? supabase
-              .from('curriculum_requirements')
-              .select('basic_credits, required_credits, elective_credits')
-              .eq('department_id', deptId)
-              .single()
-          : Promise.resolve({ data: null }),
-        supabase
-          .from('checked_courses')
-          .select('course_catalog(id, name, code, credits, type)')
-          .eq('user_id', user!.id),
-      ])
+      // 입학년도에 맞는 교육과정 버전을 찾는다 (curriculum 리팩터와 동일 규칙)
+      let versionId: number | null = null
+      let req: any = null
+      if (deptId) {
+        const { data: versions } = await supabase
+          .from('curriculum_versions')
+          .select('id, year_start, year_end')
+          .eq('department_id', deptId)
+          .order('year_start', { ascending: false })
+        if (versions && versions.length) {
+          const v =
+            (admission != null &&
+              versions.find(
+                (x: any) => x.year_start <= admission && (x.year_end == null || x.year_end >= admission),
+              )) ||
+            versions[0]
+          versionId = v.id
+          const { data } = await supabase
+            .from('curriculum_version_requirements')
+            .select('basic_credits, required_credits, industry_credits, elective_credits')
+            .eq('version_id', v.id)
+            .eq('track', 'single')
+            .maybeSingle()
+          req = data
+        }
+      }
 
-      const req = reqRes.data as any
+      const { data: checkedRows } = await supabase
+        .from('checked_courses')
+        .select('course_catalog(id, name, code, credits, type)')
+        .eq('user_id', user!.id)
+
       const basic    = { completed: 0, total: req?.basic_credits    ?? 0 }
       const required = { completed: 0, total: req?.required_credits  ?? 0 }
+      const industry = { completed: 0, total: req?.industry_credits  ?? 0 }
       const elective = { completed: 0, total: req?.elective_credits  ?? 0 }
       const recentCourses: ProgressData['recentCourses'] = []
 
-      for (const row of (checkedRes.data || [])) {
+      for (const row of (checkedRows || [])) {
         const c = (row as any).course_catalog
         if (!c) continue
         recentCourses.push({ id: c.id, name: c.name, code: c.code ?? c.id, credits: c.credits, type: c.type })
         if (c.type === '전공기초')  basic.completed    += c.credits
         if (c.type === '전공필수')  required.completed  += c.credits
+        if (c.type === '산학필수')  industry.completed  += c.credits
         if (c.type === '전공선택')  elective.completed  += c.credits
       }
 
-      const totalReq  = basic.total + required.total + elective.total
-      const totalDone = basic.completed + required.completed + elective.completed
+      const totalReq  = basic.total + required.total + industry.total + elective.total
+      const totalDone = basic.completed + required.completed + industry.completed + elective.completed
       const overallPct = totalReq > 0 ? Math.round((totalDone / totalReq) * 100) : 0
 
-      return { basic, required, elective, overallPct, recentCourses }
+      return { basic, required, industry, elective, overallPct, recentCourses, hasCurriculum: versionId != null }
     },
     enabled: !!user && userMajor !== undefined,
   })

@@ -24,9 +24,15 @@ export const CATEGORY_CONFIG: CategoryConfig[] = [
     tip: '전공필수 과목들은 졸업 요건에서 빠질 수 없어요. 매 학기 균형 있게 들어두세요!',
   },
   {
+    type: '산학필수',
+    label: '산학필수',
+    categoryNo: 'CATEGORY 03',
+    tip: '현장실습 등 산학필수 과목은 학과 졸업요건에 포함돼요. 방학을 활용해 미리 채워두세요!',
+  },
+  {
     type: '전공선택',
     label: '전공선택',
-    categoryNo: 'CATEGORY 03',
+    categoryNo: 'CATEGORY 04',
     tip: '전공선택은 자신의 커리어 방향에 맞는 과목 위주로 전략적으로 골라보세요.',
   },
 ]

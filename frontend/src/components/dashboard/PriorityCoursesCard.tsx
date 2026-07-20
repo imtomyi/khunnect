@@ -52,7 +52,7 @@ type Course = {
   name: string
   code: string
   credits: number
-  type: '전공필수' | '전공기초' | '전공선택'
+  type: '전공필수' | '전공기초' | '산학필수' | '전공선택'
 }
 
 export default function PriorityCoursesCard({ isZeroState, checkedCourses = [] }: { isZeroState?: boolean; checkedCourses?: Course[] }) {

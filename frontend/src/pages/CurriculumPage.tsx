@@ -1,8 +1,9 @@
 import { useMemo, useState } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useAuth } from '../hooks/useAuth'
+import { useCurriculum } from '../hooks/useCurriculum'
 import { supabase } from '../lib/supabase'
-import type { CatalogCourse, CurriculumRequirement, CourseType } from '../types/index'
+import type { CourseType } from '../types/index'
 import DashboardNav from '../components/dashboard/DashboardNav'
 import HomeFooter from '../components/dashboard/HomeFooter'
 import { CategoryPanel, CATEGORY_CONFIG } from '../components/curriculum/CategoryPanel'
@@ -15,53 +16,10 @@ export default function CurriculumPage() {
   const [selectedType, setSelectedType] = useState<CourseType>('전공기초')
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saved'>('idle')
 
-  // 학과 정보 (department_id 조회)
-  const { data: majorData } = useQuery({
-    queryKey: ['user_major', user?.id],
-    queryFn: async () => {
-      const { data } = await supabase
-        .from('user_majors')
-        .select('department_id')
-        .eq('user_id', user!.id)
-        .eq('type', 'major')
-        .single()
-      return data
-    },
-    enabled: !!user,
-  })
-
-  // 과목 카탈로그
-  const { data: catalog = [], isLoading: catalogLoading } = useQuery<CatalogCourse[]>({
-    queryKey: ['course_catalog'],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('course_catalog')
-        .select('id, name, type, credits, code')
-      if (error) throw error
-      return (data || []).map((c: any) => ({
-        id: String(c.id),
-        name: c.name as string,
-        type: c.type as CourseType,
-        credits: Number(c.credits),
-        code: (c.code ?? c.id) as string,
-      }))
-    },
-    enabled: !!user,
-  })
-
-  // 졸업 요건
-  const { data: requirement } = useQuery<CurriculumRequirement | null>({
-    queryKey: ['curriculum_requirements', majorData?.department_id],
-    queryFn: async () => {
-      const { data } = await supabase
-        .from('curriculum_requirements')
-        .select('basic_credits, required_credits, elective_credits')
-        .eq('department_id', majorData!.department_id)
-        .single()
-      return data ?? null
-    },
-    enabled: !!majorData?.department_id,
-  })
+  // 학과 × 입학년도 → 교육과정 버전(과목·요건·부가조건). 버전 없으면 null.
+  const { data: curriculum, isLoading: catalogLoading } = useCurriculum()
+  const catalog = curriculum?.courses ?? []
+  const requirement = curriculum?.requirement ?? null
 
   // 체크된 과목 목록 (string[] — course_id 배열)
   const { data: checkedIds = [] } = useQuery<string[]>({
@@ -111,8 +69,16 @@ export default function CurriculumPage() {
     .reduce((sum, c) => sum + c.credits, 0)
 
   const reqTotal = requirement
-    ? ({ 전공기초: requirement.basic_credits, 전공필수: requirement.required_credits, 전공선택: requirement.elective_credits })[selectedType] ?? 0
+    ? ({
+        전공기초: requirement.basicCredits,
+        전공필수: requirement.requiredCredits,
+        산학필수: requirement.industryCredits,
+        전공선택: requirement.electiveCredits,
+      })[selectedType] ?? 0
     : 0
+
+  // 로딩 끝났는데 교육과정이 없으면(아직 시드 안 된 학과) 안내를 띄운다
+  const noCurriculum = !catalogLoading && !curriculum
 
   return (
     <div style={{ fontFamily: 'var(--font-roboto)', backgroundColor: '#FFFFFF', minHeight: '100vh' }}>
@@ -146,29 +112,45 @@ export default function CurriculumPage() {
 
           {/* 본문 */}
           <div style={{ paddingTop: '48px', paddingBottom: '120px' }}>
-            <div style={{ display: 'flex', gap: '24px', alignItems: 'flex-start', minHeight: '560px' }}>
+            {noCurriculum ? (
+              // 아직 교육과정이 등록되지 않은 학과 (소융·컴공 외)
+              <div style={{
+                backgroundColor: '#FAFAF9', border: '1px solid #E7E5E4', borderRadius: '20px',
+                padding: '80px 40px', textAlign: 'center',
+              }}>
+                <p style={{ fontSize: '18px', fontWeight: 700, color: '#1F1A1A', margin: 0 }}>
+                  교육과정을 준비 중입니다
+                </p>
+                <p style={{ fontSize: '14px', color: '#78716C', margin: '10px auto 0', maxWidth: '460px', lineHeight: 1.6 }}>
+                  아직 이 학과의 교육과정이 등록되지 않았어요. 학과별 교육과정을 순차적으로
+                  추가하고 있으니 조금만 기다려 주세요. 그동안 선배들의 로드맵을 참고해보는 건 어떨까요?
+                </p>
+              </div>
+            ) : (
+              <>
+                <div style={{ display: 'flex', gap: '24px', alignItems: 'flex-start', minHeight: '560px' }}>
 
-              <CategoryPanel selectedType={selectedType} onSelect={setSelectedType} />
+                  <CategoryPanel selectedType={selectedType} onSelect={setSelectedType} />
 
-              {catalogLoading ? (
-                <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <p style={{ color: '#A8A29E', fontSize: '14px' }}>과목을 불러오는 중...</p>
+                  {catalogLoading ? (
+                    <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <p style={{ color: '#A8A29E', fontSize: '14px' }}>과목을 불러오는 중...</p>
+                    </div>
+                  ) : (
+                    <CourseGrid
+                      categoryLabel={category.label}
+                      courses={currentCourses}
+                      checked={checked}
+                      completedCredits={completedCredits}
+                      reqTotal={reqTotal}
+                      onToggle={toggleCourse}
+                    />
+                  )}
+
                 </div>
-              ) : (
-                <CourseGrid
-                  categoryLabel={category.label}
-                  courses={currentCourses}
-                  checked={checked}
-                  completedCredits={completedCredits}
-                  reqTotal={reqTotal}
-                  onToggle={toggleCourse}
-                />
-              )}
 
-            </div>
-
-            {/* 하단 액션 버튼 */}
-            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', marginTop: '12px' }}>
+                {/* 하단 액션 버튼 */}
+                <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', marginTop: '12px' }}>
               <button
                 onClick={handleSave}
                 style={{
@@ -206,10 +188,12 @@ export default function CurriculumPage() {
                   boxShadow: '0 8px 16px -4px rgba(46, 103, 147, 0.6)',
                 }}
               >
-                <CalculatorIcon />
-                커리큘럼 계산하기
-              </button>
-            </div>
+                    <CalculatorIcon />
+                    커리큘럼 계산하기
+                  </button>
+                </div>
+              </>
+            )}
           </div>
 
           <HomeFooter />

@@ -78,7 +78,34 @@ export type PublicRoadmap = Roadmap & {
 }
 
 /** 과목 카탈로그 항목 */
-export type CourseType = '전공기초' | '전공필수' | '전공선택'
+export type CourseType = '전공기초' | '전공필수' | '산학필수' | '전공선택'
+
+/** 교육과정 버전 (학과 × 입학년도 구간) */
+export type CurriculumVersion = {
+  id: number
+  departmentId: number
+  yearStart: number
+  yearEnd: number | null
+  totalCredits: number | null
+  note: string | null
+}
+
+/** 버전별 졸업요건 (전공유형별) */
+export type VersionRequirement = {
+  basicCredits: number
+  requiredCredits: number
+  industryCredits: number
+  electiveCredits: number
+}
+
+/** 부가 졸업조건 (영어강좌·SW교육·졸업논문 등) */
+export type ExtraRequirement = {
+  id: number
+  kind: 'english_lecture' | 'sw_education' | 'thesis' | 'other'
+  label: string
+  countRequired: number | null
+  appliesFrom: number | null
+}
 
 export type CatalogCourse = {
   id: string
