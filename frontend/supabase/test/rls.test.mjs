@@ -174,6 +174,33 @@ check('RM 로드맵 삭제 시 항목 CASCADE', (await db.query(`SELECT id FROM 
                         WHERE c.name='체육대학' ORDER BY d.name`)
   check('DEPT 체육대학 5개 학과 조회', r.data?.length === 5, `→ ${r.data?.length}`) }
 
+// ── 컴공 2024 시드 (파일럿) ──
+// PDF 요약표와 대조: 전공기초5 · 전공필수16 · 요건 15/45/12/15 · 부가조건3
+await db.exec(sql('../seeds/cse_2024.sql'))
+{ const rows = (await db.query(`
+    SELECT c.type, count(*)::int n FROM course_catalog c
+    JOIN curriculum_versions v ON v.id=c.version_id
+    WHERE v.year_start=2024 GROUP BY c.type`)).rows
+  const by = Object.fromEntries(rows.map(r => [r.type, r.n]))
+  check('SEED 컴공2024 전공기초 5과목', by['전공기초'] === 5, JSON.stringify(by))
+  check('SEED 컴공2024 전공필수 16과목', by['전공필수'] === 16, JSON.stringify(by))
+  check('SEED 컴공2024 산학필수 2과목', by['산학필수'] === 2, JSON.stringify(by))
+  check('SEED 컴공2024 전공선택 53과목', by['전공선택'] === 53, JSON.stringify(by)) }
+{ const r = (await db.query(`
+    SELECT r.basic_credits b, r.required_credits req, r.industry_credits ind, r.elective_credits el
+    FROM curriculum_version_requirements r JOIN curriculum_versions v ON v.id=r.version_id
+    WHERE v.year_start=2024`)).rows[0]
+  check('SEED 컴공2024 요건 15/45/12/15',
+    r?.b===15 && r?.req===45 && r?.ind===12 && r?.el===15, JSON.stringify(r)) }
+{ const n = (await db.query(`SELECT count(*)::int n FROM curriculum_extra_requirements e
+    JOIN curriculum_versions v ON v.id=e.version_id WHERE v.year_start=2024`)).rows[0].n
+  check('SEED 컴공2024 부가조건 3건', n === 3, `→ ${n}`) }
+// 시드 재실행 안전 (DELETE 후 재삽입)
+await db.exec(sql('../seeds/cse_2024.sql'))
+{ const n = (await db.query(`SELECT count(*)::int n FROM course_catalog c
+    JOIN curriculum_versions v ON v.id=c.version_id WHERE v.year_start=2024`)).rows[0].n
+  check('SEED 재실행해도 76과목 유지', n === 76, `→ ${n}`) }
+
 // ── 교육과정 버전 모델 (0007) ──
 // 마이그레이션은 위에서 재실행까지 마쳤다 → idempotent 이관을 검증한다.
 { const n = (await db.query(`SELECT count(*)::int n FROM curriculum_versions WHERE department_id=1`)).rows[0].n
