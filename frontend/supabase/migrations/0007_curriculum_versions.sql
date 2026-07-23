@@ -100,3 +100,16 @@ END $$;
 -- 권한
 GRANT SELECT ON curriculum_versions, curriculum_version_requirements, curriculum_extra_requirements
   TO anon, authenticated;
+
+-- RLS 공개 읽기 (course_catalog·departments와 동일 규칙 — 교육과정은 공개 정보)
+-- 이걸 빠뜨리면 GRANT가 있어도 RLS가 켜진 테이블에서 anon이 0행만 보게 된다.
+ALTER TABLE curriculum_versions             ENABLE ROW LEVEL SECURITY;
+ALTER TABLE curriculum_version_requirements ENABLE ROW LEVEL SECURITY;
+ALTER TABLE curriculum_extra_requirements   ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS curriculum_versions_read     ON curriculum_versions;
+DROP POLICY IF EXISTS curriculum_ver_req_read      ON curriculum_version_requirements;
+DROP POLICY IF EXISTS curriculum_extra_read        ON curriculum_extra_requirements;
+CREATE POLICY curriculum_versions_read ON curriculum_versions FOR SELECT USING (true);
+CREATE POLICY curriculum_ver_req_read  ON curriculum_version_requirements FOR SELECT USING (true);
+CREATE POLICY curriculum_extra_read    ON curriculum_extra_requirements FOR SELECT USING (true);

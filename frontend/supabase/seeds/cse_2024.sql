@@ -25,7 +25,7 @@ BEGIN
   LIMIT 1;
 
   IF dept_id IS NULL THEN
-    RAISE EXCEPTION '컴퓨터공학부를 찾을 수 없음 — 0006 마이그레이션 먼저 실행';
+    RAISE EXCEPTION 'department (computer engineering) not found - run migration 0006 first';
   END IF;
 
   -- 2024 버전 (요건 개편 이력상 현행. 정확한 시작연도는 시행세칙 표 재확인 여지 있음)
@@ -137,5 +137,5 @@ BEGIN
   (dept_id, ver_id, '단기현장실습',      'CSE-INT1', '산학필수', 3, 2),
   (dept_id, ver_id, '장기현장실습',      'CSE-INT2', '산학필수', 9, 2);
 
-  RAISE NOTICE '컴퓨터공학과 2024 시드 완료: version_id=%', ver_id;
+  RAISE NOTICE 'CSE 2024 seed done: version_id=%', ver_id;
 END $$;
