@@ -30,7 +30,7 @@ const subTextStyle: CSSProperties = {
 export default function SeniorsHero() {
   return (
     <div style={heroStyle}>
-      <h1 style={headingStyle}>선배 디렉토리</h1>
+      <h1 style={headingStyle}>선배와의 연결</h1>
       <p style={subTextStyle}>
         당신이 가고자 하는 길을 먼저 성공적으로 걸어간 학업 베테랑들을 만나보세요.
       </p>
