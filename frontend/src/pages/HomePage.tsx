@@ -195,7 +195,7 @@ export default function HomePage() {
                 isZeroState={!hasData}
                 checkedCourses={progress?.recentCourses ?? []}
               />
-              <RecommendedSeniorCard isZeroState={true} />
+              <RecommendedSeniorCard />
             </section>
 
             {/* ── 최근 활동 ── */}

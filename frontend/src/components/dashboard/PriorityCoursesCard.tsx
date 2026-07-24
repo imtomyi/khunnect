@@ -1,3 +1,5 @@
+import { Link } from '@tanstack/react-router'
+
 const cardStyle = (isZeroState?: boolean): React.CSSProperties => ({
   height: isZeroState ? '450px' : '646.052px',
   borderRadius: '32px',
@@ -36,16 +38,23 @@ const actionBtnBaseStyle: React.CSSProperties = {
   cursor: 'pointer',
   transition: 'background-color 150ms ease, color 150ms ease',
   fontFamily: 'Roboto, system-ui, sans-serif',
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  textDecoration: 'none',
 }
 
-function handleBtnEnter(e: React.MouseEvent<HTMLButtonElement>) {
+function handleBtnEnter(e: React.MouseEvent<HTMLElement>) {
   e.currentTarget.style.backgroundColor = '#9A001F'
   e.currentTarget.style.color = '#FFFFFF'
 }
-function handleBtnLeave(e: React.MouseEvent<HTMLButtonElement>) {
+function handleBtnLeave(e: React.MouseEvent<HTMLElement>) {
   e.currentTarget.style.backgroundColor = 'transparent'
   e.currentTarget.style.color = '#9A001F'
 }
+
+const typeBadge = (t: Course['type']) =>
+  t === '전공필수' ? '필' : t === '전공기초' ? '기' : t === '산학필수' ? '산' : '선'
 
 type Course = {
   id: string
@@ -87,7 +96,7 @@ export default function PriorityCoursesCard({ isZeroState, checkedCourses = [] }
             <div key={course.id} className="flex items-center gap-3" style={{ paddingTop: '20px', paddingBottom: '20px' }}>
               <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0" style={{ backgroundColor: '#FCF1F1' }}>
                 <span className="text-xs font-bold" style={{ color: '#9A001F' }}>
-                  {course.type === '전공필수' ? '필' : course.type === '전공기초' ? '기' : '선'}
+                  {typeBadge(course.type)}
                 </span>
               </div>
               <div>
@@ -99,13 +108,14 @@ export default function PriorityCoursesCard({ isZeroState, checkedCourses = [] }
         </div>
       )}
 
-      <button
+      <Link
+        to="/curriculum"
         style={actionBtnBaseStyle}
         onMouseEnter={handleBtnEnter}
         onMouseLeave={handleBtnLeave}
       >
         {isZeroState ? '커리큘럼 계산 시작하기' : '과목 추가하기'}
-      </button>
+      </Link>
     </div>
   )
 }
