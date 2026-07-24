@@ -176,17 +176,18 @@ export default function DashboardNav() {
             로그아웃
           </button>
 
-          <button
+          <Link
+            to="/my"
             style={{
               display: 'flex', padding: '8px 20px', justifyContent: 'center', alignItems: 'center',
               borderRadius: '14998.5px', background: '#9A001F', color: '#FFFFFF',
               fontFamily: 'var(--font-roboto)', fontSize: '14px', fontWeight: 600,
               border: 'none', cursor: 'pointer', boxShadow: '0 4px 14px 0 rgba(154,0,31,0.35)',
-              whiteSpace: 'nowrap',
+              whiteSpace: 'nowrap', textDecoration: 'none',
             }}
           >
             메시지함
-          </button>
+          </Link>
 
           <div style={{ width: '1.5px', height: '36px', flexShrink: 0, background: '#E2E8F0', margin: '0 4px' }} />
 
