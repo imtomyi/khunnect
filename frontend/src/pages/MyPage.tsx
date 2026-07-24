@@ -140,13 +140,17 @@ const topRowStyle: CSSProperties = {
 
 const calendarPlaceholderStyle: CSSProperties = {
   flex: 1,
-  backgroundColor: '#FFFFFF',
+  backgroundColor: '#FFF8F7',
+  border: '1px solid #F3E8E8',
   borderRadius: '20px',
   padding: '28px 24px',
   display: 'flex',
+  flexDirection: 'column',
   alignItems: 'center',
   justifyContent: 'center',
+  gap: '10px',
   minHeight: '200px',
+  textAlign: 'center',
 }
 
 export default function MyPage() {
@@ -260,8 +264,18 @@ export default function MyPage() {
                   onEditClick={() => setShowEditModal(true)}
                 />
                 <div style={calendarPlaceholderStyle}>
-                  <p style={{ fontSize: '14px', color: '#A8A29E' }}>
-                    캘린더 기능은 준비 중입니다.
+                  <div style={{
+                    width: '48px', height: '48px', borderRadius: '14px', backgroundColor: '#FFFFFF',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  }}>
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                      <path d="M7 2v3M17 2v3M3 8h18M5 4h14a2 2 0 012 2v13a2 2 0 01-2 2H5a2 2 0 01-2-2V6a2 2 0 012-2z"
+                        stroke="#9A001F" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+                    </svg>
+                  </div>
+                  <p style={{ fontSize: '15px', fontWeight: 700, color: '#1F1A1A', margin: 0 }}>커리어 캘린더</p>
+                  <p style={{ fontSize: '13px', color: '#916F6E', margin: 0, lineHeight: 1.6 }}>
+                    커피챗 일정과 학기 계획을 한눈에 볼 수 있는<br />캘린더를 준비하고 있어요. 곧 만나요!
                   </p>
                 </div>
               </div>
