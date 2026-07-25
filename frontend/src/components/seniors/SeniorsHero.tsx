@@ -14,15 +14,16 @@ const heroStyle: CSSProperties = {
   justifyContent: 'center',
 }
 
+// 피그마 mentor_01 히어로 스펙 정확 반영
 const headingStyle: CSSProperties = {
-  fontSize: '36px',
-  fontWeight: 700,
-  color: '#1F1A1A',
+  fontSize: '50px',
+  fontWeight: 600,
+  color: '#3A3A3A',
   marginBottom: '16px',
 }
 
 const subTextStyle: CSSProperties = {
-  fontSize: '15px',
+  fontSize: '19px',
   color: '#5C3F3F',
   fontWeight: 400,
 }
