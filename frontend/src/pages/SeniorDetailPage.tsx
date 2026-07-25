@@ -8,6 +8,7 @@ import DashboardNav from '../components/dashboard/DashboardNav'
 import HomeFooter from '../components/dashboard/HomeFooter'
 import { AvatarIcon, getAvatarVariantForId } from '../lib/avatarVariants'
 import { useCoffeeChatWith, useRequestCoffeeChat } from '../hooks/useCoffeeChats'
+import { useBookmarks, useToggleBookmark } from '../hooks/useBookmarks'
 import { useUserRoadmap } from '../hooks/useRoadmap'
 import RoadmapTimeline from '../components/roadmap/RoadmapTimeline'
 import { Route } from '../routes/seniors.$seniorId'
@@ -184,6 +185,9 @@ export default function SeniorDetailPage() {
 
   const { data: existingChat } = useCoffeeChatWith(seniorId)
   const requestChat = useRequestCoffeeChat()
+  const { data: bookmarks = [] } = useBookmarks()
+  const toggleBookmark = useToggleBookmark()
+  const isBookmarked = bookmarks.includes(seniorId)
   const [showModal, setShowModal] = useState(false)
 
   // 공개된 로드맵만 RLS를 통과해 내려온다 (비공개면 null)
@@ -226,7 +230,28 @@ export default function SeniorDetailPage() {
                     />
                   </div>
                   <div>
-                    <p style={nameStyle}>{senior.name}</p>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                      <p style={nameStyle}>{senior.name}</p>
+                      <button
+                        type="button"
+                        aria-label={isBookmarked ? '북마크 해제' : '북마크'}
+                        onClick={() => toggleBookmark.mutate({ seniorId: senior.id, isBookmarked })}
+                        style={{
+                          width: '32px', height: '32px', borderRadius: '50%', flexShrink: 0,
+                          border: 'none', cursor: 'pointer',
+                          backgroundColor: isBookmarked ? '#9A001F' : '#F6EBEB',
+                          display: 'flex', alignItems: 'center', justifyContent: 'center',
+                          transition: 'background-color .15s ease',
+                        }}
+                      >
+                        <svg width="16" height="16" viewBox="0 0 24 24"
+                          fill={isBookmarked ? '#FFFFFF' : 'none'}
+                          stroke={isBookmarked ? '#FFFFFF' : '#9A001F'} strokeWidth="2">
+                          <path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"
+                            strokeLinejoin="round" />
+                        </svg>
+                      </button>
+                    </div>
                     <p style={deptStyle}>
                       {[
                         formatDepartments(senior.departments),
@@ -261,9 +286,18 @@ export default function SeniorDetailPage() {
 
                   <div style={panelStyle}>
                     <p style={panelLabelStyle}>소개</p>
-                    <p style={{ fontSize: '15px', color: '#5C3F3F', lineHeight: 1.7, margin: 0 }}>
-                      {senior.bio || '아직 작성된 소개가 없습니다.'}
-                    </p>
+                    {senior.bio ? (
+                      <div style={{ display: 'flex', gap: '10px' }}>
+                        <svg width="22" height="22" viewBox="0 0 24 24" fill="#E6BDBB" style={{ flexShrink: 0, marginTop: '2px' }}>
+                          <path d="M7.17 6A5 5 0 0 0 3 11v7h7v-7H6.5A2.5 2.5 0 0 1 9 8.5V6H7.17Zm10 0A5 5 0 0 0 13 11v7h7v-7h-3.5A2.5 2.5 0 0 1 19 8.5V6h-1.83Z"/>
+                        </svg>
+                        <p style={{ fontSize: '15px', color: '#5C3F3F', lineHeight: 1.7, margin: 0 }}>{senior.bio}</p>
+                      </div>
+                    ) : (
+                      <p style={{ fontSize: '15px', color: '#5C3F3F', lineHeight: 1.7, margin: 0 }}>
+                        아직 작성된 소개가 없습니다.
+                      </p>
+                    )}
                   </div>
 
                   <div style={panelStyle}>
