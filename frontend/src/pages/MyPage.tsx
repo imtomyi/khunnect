@@ -214,6 +214,28 @@ export default function MyPage() {
     enabled: !!user,
   })
 
+  // 북마크한 선배들의 공개 로드맵 (스크랩북 '저장한 로드맵')
+  const { data: savedRoadmaps = [] } = useQuery({
+    queryKey: ['scrapbook_roadmaps', bookmarkIds],
+    queryFn: async () => {
+      if (bookmarkIds.length === 0) return []
+      const { data, error } = await supabase
+        .from('roadmaps')
+        .select('id, user_id, title, summary, is_public, profiles!inner(name)')
+        .in('user_id', bookmarkIds)
+        .eq('is_public', true)
+      if (error) throw error
+      return (data ?? []).map((r: any) => ({
+        id: r.id as number,
+        seniorId: r.user_id as string,
+        title: r.title as string,
+        summary: (r.summary ?? null) as string | null,
+        ownerName: (Array.isArray(r.profiles) ? r.profiles[0] : r.profiles)?.name ?? '',
+      }))
+    },
+    enabled: !!user,
+  })
+
   if (loading || !user) return null
 
   const name     = (profile as any)?.name ?? '...'
@@ -285,7 +307,7 @@ export default function MyPage() {
 
               <CoffeeChatSection />
 
-              <ScrapbookSection scrapedSeniors={scrapedSeniors} />
+              <ScrapbookSection scrapedSeniors={scrapedSeniors} savedRoadmaps={savedRoadmaps} />
 
               <HomeFooter />
             </div>

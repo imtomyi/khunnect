@@ -9,14 +9,18 @@ type ScrapedSenior = {
   graduationYear?: number
 }
 
-type ScrapbookSectionProps = {
-  scrapedSeniors: ScrapedSenior[]
+type SavedRoadmap = {
+  id: number
+  seniorId: string
+  title: string
+  summary: string | null
+  ownerName: string
 }
 
-const MOCK_ROADMAPS = [
-  { id: 'ux-ui',    title: 'UX 리서처가 되는 길',       bgColor: '#C8A882' },
-  { id: 'mobility', title: '모빌리티 디자이너가 되는 길', bgColor: '#4A5568' },
-]
+type ScrapbookSectionProps = {
+  scrapedSeniors: ScrapedSenior[]
+  savedRoadmaps: SavedRoadmap[]
+}
 
 const cardStyle: CSSProperties = {
   backgroundColor: '#FFFFFF',
@@ -87,7 +91,7 @@ const roadmapLabelStyle: CSSProperties = {
   color: '#FFFFFF',
 }
 
-export default function ScrapbookSection({ scrapedSeniors }: ScrapbookSectionProps) {
+export default function ScrapbookSection({ scrapedSeniors, savedRoadmaps }: ScrapbookSectionProps) {
   return (
     <div style={cardStyle}>
       <p style={titleStyle}>스크랩북</p>
@@ -150,11 +154,27 @@ export default function ScrapbookSection({ scrapedSeniors }: ScrapbookSectionPro
             </svg>
             저장한 로드맵
           </div>
-          {MOCK_ROADMAPS.map((roadmap) => (
-            <div key={roadmap.id} style={{ ...roadmapCardStyle, backgroundColor: roadmap.bgColor }}>
-              <p style={roadmapLabelStyle}>{roadmap.title}</p>
-            </div>
-          ))}
+          {savedRoadmaps.length === 0 ? (
+            <p style={{ fontSize: '13px', color: '#9CA3AF' }}>
+              북마크한 선배가 로드맵을 공개하면 여기에 모여요.
+            </p>
+          ) : (
+            savedRoadmaps.map((roadmap) => (
+              <Link
+                key={roadmap.id}
+                to="/seniors/$seniorId"
+                params={{ seniorId: roadmap.seniorId }}
+                style={{ textDecoration: 'none' }}
+              >
+                <div style={{ ...roadmapCardStyle, backgroundColor: '#9A001F' }}>
+                  <p style={roadmapLabelStyle}>{roadmap.title}</p>
+                  <p style={{ fontSize: '12px', color: 'rgba(255,255,255,0.75)', margin: '4px 0 0' }}>
+                    {roadmap.ownerName} 선배
+                  </p>
+                </div>
+              </Link>
+            ))
+          )}
         </div>
       </div>
     </div>

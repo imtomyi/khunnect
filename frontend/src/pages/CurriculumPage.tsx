@@ -15,6 +15,8 @@ export default function CurriculumPage() {
   const queryClient = useQueryClient()
   const [selectedType, setSelectedType] = useState<CourseType>('전공기초')
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saved'>('idle')
+  const [calculating, setCalculating] = useState(false)
+  const [showResults, setShowResults] = useState(false)
 
   // 학과 × 입학년도 → 교육과정 버전(과목·요건·부가조건). 버전 없으면 null.
   const { data: curriculum, isLoading: catalogLoading } = useCurriculum()
@@ -79,6 +81,25 @@ export default function CurriculumPage() {
 
   // 로딩 끝났는데 교육과정이 없으면(아직 시드 안 된 학과) 안내를 띄운다
   const noCurriculum = !catalogLoading && !curriculum
+
+  // 카테고리별 이수 학점 요약 (결과 모달용)
+  const summary = (['전공기초', '전공필수', '산학필수', '전공선택'] as CourseType[]).map((t) => {
+    const done = catalog.filter((c) => c.type === t && checked.has(c.id)).reduce((s, c) => s + c.credits, 0)
+    const req = requirement
+      ? ({ 전공기초: requirement.basicCredits, 전공필수: requirement.requiredCredits, 산학필수: requirement.industryCredits, 전공선택: requirement.electiveCredits })[t] ?? 0
+      : 0
+    return { type: t, done, req }
+  })
+  const totalDone = summary.reduce((s, c) => s + c.done, 0)
+  const totalReq = summary.reduce((s, c) => s + c.req, 0)
+  const gradTotal = curriculum?.totalCredits ?? totalReq
+  const overallPct = totalReq > 0 ? Math.round((totalDone / totalReq) * 100) : 0
+
+  // '커리큘럼 계산하기' → 짧은 로딩 후 결과 모달 (피그마 A2: 로딩/결과 흐름)
+  function handleCalculate() {
+    setCalculating(true)
+    setTimeout(() => { setCalculating(false); setShowResults(true) }, 600)
+  }
 
   return (
     <div style={{ fontFamily: 'var(--font-roboto)', backgroundColor: '#FFFFFF', minHeight: '100vh' }}>
@@ -173,6 +194,8 @@ export default function CurriculumPage() {
                 {saveStatus === 'saved' ? <><SavedCheckIcon />저장됨</> : '저장'}
               </button>
               <button
+                onClick={handleCalculate}
+                disabled={calculating}
                 style={{
                   display: 'flex',
                   alignItems: 'center',
@@ -184,12 +207,13 @@ export default function CurriculumPage() {
                   color: '#FFFFFF',
                   fontSize: '15px',
                   fontWeight: 600,
-                  cursor: 'pointer',
+                  cursor: calculating ? 'wait' : 'pointer',
+                  opacity: calculating ? 0.7 : 1,
                   boxShadow: '0 8px 16px -4px rgba(46, 103, 147, 0.6)',
                 }}
               >
                     <CalculatorIcon />
-                    커리큘럼 계산하기
+                    {calculating ? '계산 중…' : '커리큘럼 계산하기'}
                   </button>
                 </div>
               </>
@@ -199,6 +223,68 @@ export default function CurriculumPage() {
           <HomeFooter />
         </div>
       </main>
+
+      {/* 커리큘럼 계산 결과 모달 */}
+      {showResults && curriculum && (
+        <div
+          onClick={() => setShowResults(false)}
+          style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.45)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100, padding: '20px' }}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{ backgroundColor: '#FFFFFF', borderRadius: '24px', padding: '36px', width: '520px', maxWidth: '100%', maxHeight: '86vh', overflowY: 'auto' }}
+          >
+            <p style={{ fontSize: '13px', fontWeight: 600, color: '#9A001F', letterSpacing: '1px', margin: 0 }}>졸업 사정 결과</p>
+            <div style={{ display: 'flex', alignItems: 'baseline', gap: '10px', margin: '6px 0 4px' }}>
+              <span style={{ fontSize: '44px', fontWeight: 700, color: '#1F1A1A' }}>{overallPct}%</span>
+              <span style={{ fontSize: '15px', color: '#5C3F3F' }}>전공 이수 {totalDone} / {totalReq}학점</span>
+            </div>
+            <p style={{ fontSize: '13px', color: '#78716C', margin: '0 0 24px' }}>졸업 총 이수학점 기준 {gradTotal}학점</p>
+
+            {/* 카테고리별 진행 */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              {summary.filter((c) => c.req > 0).map((c) => {
+                const pct = c.req > 0 ? Math.min(100, Math.round((c.done / c.req) * 100)) : 0
+                const met = c.done >= c.req
+                return (
+                  <div key={c.type}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
+                      <span style={{ fontSize: '14px', fontWeight: 600, color: '#1F1A1A' }}>
+                        {c.type} {met && <span style={{ color: '#166534', fontSize: '12px' }}>✓ 충족</span>}
+                      </span>
+                      <span style={{ fontSize: '13px', color: met ? '#166534' : '#9A001F' }}>{c.done} / {c.req}학점</span>
+                    </div>
+                    <div style={{ height: '8px', borderRadius: '9999px', backgroundColor: '#F3E8E8', overflow: 'hidden' }}>
+                      <div style={{ width: `${pct}%`, height: '100%', borderRadius: '9999px', backgroundColor: met ? '#166534' : '#9A001F', transition: 'width .3s ease' }} />
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+
+            {/* 부가 졸업조건 */}
+            {curriculum.extras.length > 0 && (
+              <div style={{ marginTop: '24px', paddingTop: '20px', borderTop: '1px solid #F3E8E8' }}>
+                <p style={{ fontSize: '13px', fontWeight: 700, color: '#1F1A1A', margin: '0 0 12px' }}>부가 졸업 요건</p>
+                {curriculum.extras.map((e) => (
+                  <div key={e.id} style={{ display: 'flex', gap: '8px', alignItems: 'flex-start', marginBottom: '8px' }}>
+                    <span style={{ color: '#B89B9B', fontSize: '13px', marginTop: '1px' }}>•</span>
+                    <span style={{ fontSize: '13px', color: '#5C3F3F', lineHeight: 1.5 }}>{e.label}</span>
+                  </div>
+                ))}
+                <p style={{ fontSize: '11px', color: '#B89B9B', margin: '6px 0 0' }}>※ 부가 요건은 별도 확인이 필요합니다.</p>
+              </div>
+            )}
+
+            <button
+              onClick={() => setShowResults(false)}
+              style={{ marginTop: '28px', width: '100%', padding: '14px', borderRadius: '14px', border: 'none', backgroundColor: '#2E6793', color: '#FFFFFF', fontSize: '15px', fontWeight: 600, cursor: 'pointer' }}
+            >
+              확인
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
