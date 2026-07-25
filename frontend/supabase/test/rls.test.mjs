@@ -41,7 +41,7 @@ try { await db.exec(sql('../schema.sql')); check('schema.sql 전체 적용', tru
 catch (e) { check('schema.sql 전체 적용', false, '→ ' + e.message); report(); process.exit(1) }
 
 // 마이그레이션 idempotent 재실행
-for (const f of ['0001_senior_profile_fields', '0002_coffee_chats', '0003_messages', '0004_security_hardening', '0005_roadmaps', '0006_khu_departments', '0007_curriculum_versions']) {
+for (const f of ['0001_senior_profile_fields', '0002_coffee_chats', '0003_messages', '0004_security_hardening', '0005_roadmaps', '0006_khu_departments', '0007_curriculum_versions', '0008_notifications']) {
   try { await db.exec(sql(`../migrations/${f}.sql`)); check(`migration ${f} (재실행)`, true) }
   catch (e) { check(`migration ${f}`, false, '→ ' + e.message) }
 }
@@ -173,6 +173,32 @@ check('RM 로드맵 삭제 시 항목 CASCADE', (await db.query(`SELECT id FROM 
 { const r = await T(S, `SELECT d.name FROM departments d JOIN colleges c ON c.id=d.college_id
                         WHERE c.name='체육대학' ORDER BY d.name`)
   check('DEPT 체육대학 5개 학과 조회', r.data?.length === 5, `→ ${r.data?.length}`) }
+
+// ── 알림 트리거 (0008) ──
+// Phase 4/5에서 S가 A에게 커피챗 신청→A 수락, 양측 메시지 전송이 이미 일어났다.
+// 트리거가 그때 알림을 생성했어야 한다.
+// A는 S와 U 양쪽에서 신청받았으므로 request 알림이 여럿. S발 알림이 있는지 확인.
+{ const n = (await db.query(`SELECT actor_id FROM notifications WHERE user_id=$1 AND type='coffee_chat_request'`, [A])).rows
+  check('NOTI 커피챗 신청 → 선배 알림', n.some((r) => r.actor_id === S), JSON.stringify(n)) }
+{ const n = (await db.query(`SELECT type FROM notifications WHERE user_id=$1 AND type='coffee_chat_accepted'`, [S])).rows
+  check('NOTI 수락 → 학생 알림', n.length === 1) }
+{ const n = (await db.query(`SELECT count(*)::int c FROM notifications WHERE user_id=$1 AND type='new_message'`, [A])).rows[0].c
+  check('NOTI 학생 메시지 → 선배 알림', n === 1, `→ ${n}`) }
+{ const n = (await db.query(`SELECT count(*)::int c FROM notifications WHERE user_id=$1 AND type='new_message'`, [S])).rows[0].c
+  check('NOTI 선배 메시지 → 학생 알림', n === 1, `→ ${n}`) }
+// 자기 행동엔 자기 알림이 안 온다
+{ const self = (await db.query(`SELECT count(*)::int c FROM notifications WHERE user_id=actor_id`)).rows[0].c
+  check('NOTI 자기 자신에겐 알림 안 감', self === 0, `→ ${self}`) }
+// RLS: 본인 알림만 조회
+check('NOTI 본인 알림 조회', (await T(A, `SELECT id FROM notifications`)).data?.length >= 1)
+check('NOTI 제3자 알림 비공개', (await T(U, `SELECT id FROM notifications WHERE user_id=$1`, [A])).data?.length === 0)
+// 읽음 처리 (본인만)
+{ const id = (await db.query(`SELECT id FROM notifications WHERE user_id=$1 LIMIT 1`, [A])).rows[0].id
+  await T(A, `UPDATE notifications SET is_read=true WHERE id=$1`, [id])
+  check('NOTI 본인 읽음 처리', (await db.query(`SELECT is_read FROM notifications WHERE id=$1`, [id])).rows[0].is_read === true)
+  await T(U, `UPDATE notifications SET is_read=true WHERE id=$1`, [id])
+  // 위 UPDATE는 RLS로 0행 영향 → 값 그대로여야
+  check('NOTI 제3자 읽음 처리 차단', (await db.query(`SELECT is_read FROM notifications WHERE id=$1`, [id])).rows[0].is_read === true) }
 
 // ── 컴공 2024 시드 (파일럿) ──
 // PDF 요약표와 대조: 전공기초5 · 전공필수16 · 요건 15/45/12/15 · 부가조건3

@@ -3,6 +3,7 @@ import type { CSSProperties } from 'react'
 import { Link, useNavigate } from '@tanstack/react-router'
 import Logo from '../Logo'
 import { useAuth } from '../../hooks/useAuth'
+import NotificationBell from './NotificationBell'
 
 type NavChild = { label: string; to: string; desc: string }
 type NavItem = { label: string; to: string; children?: NavChild[] }
@@ -188,6 +189,8 @@ export default function DashboardNav() {
           >
             메시지함
           </Link>
+
+          <NotificationBell />
 
           <div style={{ width: '1.5px', height: '36px', flexShrink: 0, background: '#E2E8F0', margin: '0 4px' }} />
 

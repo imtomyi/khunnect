@@ -31,6 +31,24 @@ export type CoffeeChat = {
   counterpartName?: string
 }
 
+/** 인앱 알림 */
+export type NotificationType =
+  | 'coffee_chat_request'
+  | 'coffee_chat_accepted'
+  | 'coffee_chat_declined'
+  | 'coffee_chat_cancelled'
+  | 'new_message'
+
+export type AppNotification = {
+  id: number
+  type: NotificationType
+  actorId: string | null
+  actorName?: string
+  coffeeChatId: number | null
+  isRead: boolean
+  createdAt: string
+}
+
 /** 채팅 메시지 (Phase 5) */
 export type Message = {
   id: number
