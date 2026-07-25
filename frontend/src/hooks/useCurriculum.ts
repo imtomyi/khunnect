@@ -31,12 +31,16 @@ export function useCurriculum() {
     enabled: !!user,
     queryFn: async () => {
       // 1) 내 주전공 학과 + 입학년도
-      const { data: major } = await supabase
+      //    주전공(type='major')은 원칙상 1개지만, 데이터가 2개여도 조용히 깨지지
+      //    않도록 최신 입학년도 1개를 고른다(single/maybeSingle은 다중 행에서 실패).
+      const { data: majors } = await supabase
         .from('user_majors')
         .select('department_id, admission_year')
         .eq('user_id', user!.id)
         .eq('type', 'major')
-        .single()
+        .order('admission_year', { ascending: false, nullsFirst: false })
+        .limit(1)
+      const major = majors?.[0]
       if (!major?.department_id) return null
 
       // 2) 입학년도로 버전 매칭 (year_start <= admission <= year_end, year_end NULL=현행)

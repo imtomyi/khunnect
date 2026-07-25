@@ -184,8 +184,9 @@ export default function MyPage() {
         .select('admission_year, graduation_year, departments(name)')
         .eq('user_id', user!.id)
         .eq('type', 'major')
-        .single()
-      return data as any
+        .order('admission_year', { ascending: false, nullsFirst: false })
+        .limit(1)
+      return (data?.[0] ?? null) as any
     },
     enabled: !!user,
   })

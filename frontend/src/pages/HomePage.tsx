@@ -44,13 +44,15 @@ export default function HomePage() {
   const { data: userMajor } = useQuery({
     queryKey: ['user_major', user?.id],
     queryFn: async () => {
+      // 주전공 다중 행이어도 최신 1개 (single은 다중 행에서 실패해 화면이 깨진다)
       const { data } = await supabase
         .from('user_majors')
         .select('admission_year, department_id')
         .eq('user_id', user!.id)
         .eq('type', 'major')
-        .single()
-      return data as any
+        .order('admission_year', { ascending: false, nullsFirst: false })
+        .limit(1)
+      return (data?.[0] ?? null) as any
     },
     enabled: !!user,
   })

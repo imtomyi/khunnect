@@ -14,14 +14,15 @@ export function useRecommendedSeniors(limit = 5) {
     queryKey: ['recommended_seniors', user?.id],
     enabled: !!user,
     queryFn: async (): Promise<Senior[]> => {
-      // 내 학과 (같은 학과 선배 우선순위용)
-      const { data: major } = await supabase
+      // 내 학과 (같은 학과 선배 우선순위용). 주전공 다중 행이어도 최신 1개.
+      const { data: majorRows } = await supabase
         .from('user_majors')
         .select('department_id')
         .eq('user_id', user!.id)
         .eq('type', 'major')
-        .maybeSingle()
-      const myDept = major?.department_id as number | undefined
+        .order('admission_year', { ascending: false, nullsFirst: false })
+        .limit(1)
+      const myDept = majorRows?.[0]?.department_id as number | undefined
 
       const { data, error } = await supabase
         .from('profiles')
