@@ -79,8 +79,7 @@ function Chevron({ open }: { open: boolean }) {
 const megaPanelStyle: CSSProperties = {
   position: 'absolute',
   top: '100%',
-  left: '50%',
-  transform: 'translateX(-50%)',
+  left: 0, // 트리거 좌측 기준 — 760px 패널이 뷰포트 밖으로 잘리지 않게 중앙정렬 대신 좌측정렬
   paddingTop: '10px', // 트리거~패널 브리지
   zIndex: 60,
 }
