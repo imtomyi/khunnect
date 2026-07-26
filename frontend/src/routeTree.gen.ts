@@ -9,10 +9,12 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as TermsRouteImport } from './routes/terms'
 import { Route as RoadmapsRouteImport } from './routes/roadmaps'
 import { Route as RoadmapRouteImport } from './routes/roadmap'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as RegisterRouteImport } from './routes/register'
+import { Route as PrivacyRouteImport } from './routes/privacy'
 import { Route as MyRouteImport } from './routes/my'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as HomeRouteImport } from './routes/home'
@@ -22,6 +24,11 @@ import { Route as CurriculumRouteImport } from './routes/curriculum'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as SeniorsSeniorIdRouteImport } from './routes/seniors.$seniorId'
 
+const TermsRoute = TermsRouteImport.update({
+  id: '/terms',
+  path: '/terms',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const RoadmapsRoute = RoadmapsRouteImport.update({
   id: '/roadmaps',
   path: '/roadmaps',
@@ -40,6 +47,11 @@ const ResetPasswordRoute = ResetPasswordRouteImport.update({
 const RegisterRoute = RegisterRouteImport.update({
   id: '/register',
   path: '/register',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PrivacyRoute = PrivacyRouteImport.update({
+  id: '/privacy',
+  path: '/privacy',
   getParentRoute: () => rootRouteImport,
 } as any)
 const MyRoute = MyRouteImport.update({
@@ -91,10 +103,12 @@ export interface FileRoutesByFullPath {
   '/home': typeof HomeRoute
   '/login': typeof LoginRoute
   '/my': typeof MyRoute
+  '/privacy': typeof PrivacyRoute
   '/register': typeof RegisterRoute
   '/reset-password': typeof ResetPasswordRoute
   '/roadmap': typeof RoadmapRoute
   '/roadmaps': typeof RoadmapsRoute
+  '/terms': typeof TermsRoute
   '/seniors/$seniorId': typeof SeniorsSeniorIdRoute
 }
 export interface FileRoutesByTo {
@@ -105,10 +119,12 @@ export interface FileRoutesByTo {
   '/home': typeof HomeRoute
   '/login': typeof LoginRoute
   '/my': typeof MyRoute
+  '/privacy': typeof PrivacyRoute
   '/register': typeof RegisterRoute
   '/reset-password': typeof ResetPasswordRoute
   '/roadmap': typeof RoadmapRoute
   '/roadmaps': typeof RoadmapsRoute
+  '/terms': typeof TermsRoute
   '/seniors/$seniorId': typeof SeniorsSeniorIdRoute
 }
 export interface FileRoutesById {
@@ -120,10 +136,12 @@ export interface FileRoutesById {
   '/home': typeof HomeRoute
   '/login': typeof LoginRoute
   '/my': typeof MyRoute
+  '/privacy': typeof PrivacyRoute
   '/register': typeof RegisterRoute
   '/reset-password': typeof ResetPasswordRoute
   '/roadmap': typeof RoadmapRoute
   '/roadmaps': typeof RoadmapsRoute
+  '/terms': typeof TermsRoute
   '/seniors/$seniorId': typeof SeniorsSeniorIdRoute
 }
 export interface FileRouteTypes {
@@ -136,10 +154,12 @@ export interface FileRouteTypes {
     | '/home'
     | '/login'
     | '/my'
+    | '/privacy'
     | '/register'
     | '/reset-password'
     | '/roadmap'
     | '/roadmaps'
+    | '/terms'
     | '/seniors/$seniorId'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -150,10 +170,12 @@ export interface FileRouteTypes {
     | '/home'
     | '/login'
     | '/my'
+    | '/privacy'
     | '/register'
     | '/reset-password'
     | '/roadmap'
     | '/roadmaps'
+    | '/terms'
     | '/seniors/$seniorId'
   id:
     | '__root__'
@@ -164,10 +186,12 @@ export interface FileRouteTypes {
     | '/home'
     | '/login'
     | '/my'
+    | '/privacy'
     | '/register'
     | '/reset-password'
     | '/roadmap'
     | '/roadmaps'
+    | '/terms'
     | '/seniors/$seniorId'
   fileRoutesById: FileRoutesById
 }
@@ -179,15 +203,24 @@ export interface RootRouteChildren {
   HomeRoute: typeof HomeRoute
   LoginRoute: typeof LoginRoute
   MyRoute: typeof MyRoute
+  PrivacyRoute: typeof PrivacyRoute
   RegisterRoute: typeof RegisterRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
   RoadmapRoute: typeof RoadmapRoute
   RoadmapsRoute: typeof RoadmapsRoute
+  TermsRoute: typeof TermsRoute
   SeniorsSeniorIdRoute: typeof SeniorsSeniorIdRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/terms': {
+      id: '/terms'
+      path: '/terms'
+      fullPath: '/terms'
+      preLoaderRoute: typeof TermsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/roadmaps': {
       id: '/roadmaps'
       path: '/roadmaps'
@@ -214,6 +247,13 @@ declare module '@tanstack/react-router' {
       path: '/register'
       fullPath: '/register'
       preLoaderRoute: typeof RegisterRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/privacy': {
+      id: '/privacy'
+      path: '/privacy'
+      fullPath: '/privacy'
+      preLoaderRoute: typeof PrivacyRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/my': {
@@ -283,10 +323,12 @@ const rootRouteChildren: RootRouteChildren = {
   HomeRoute: HomeRoute,
   LoginRoute: LoginRoute,
   MyRoute: MyRoute,
+  PrivacyRoute: PrivacyRoute,
   RegisterRoute: RegisterRoute,
   ResetPasswordRoute: ResetPasswordRoute,
   RoadmapRoute: RoadmapRoute,
   RoadmapsRoute: RoadmapsRoute,
+  TermsRoute: TermsRoute,
   SeniorsSeniorIdRoute: SeniorsSeniorIdRoute,
 }
 export const routeTree = rootRouteImport

@@ -20,8 +20,8 @@ export default function Footer() {
       }}>
         {[
           { label: "서비스 소개", to: "/" },
-          { label: "이용약관", to: "/" },
-          { label: "개인정보처리방침", to: "/" },
+          { label: "이용약관", to: "/terms" },
+          { label: "개인정보처리방침", to: "/privacy" },
           { label: "문의하기", to: "/" },
         ].map((item) => (
           <Link key={item.label} to={item.to} style={{
