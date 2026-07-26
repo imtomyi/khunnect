@@ -3,10 +3,12 @@ import type { CSSProperties } from 'react'
 import { Link, useNavigate } from '@tanstack/react-router'
 import Logo from '../Logo'
 import { useAuth } from '../../hooks/useAuth'
+import { useDepartmentsByCollege } from '../../hooks/useDepartments'
 import NotificationBell from './NotificationBell'
 
 type NavChild = { label: string; to: string; desc: string }
-type NavItem = { label: string; to: string; children?: NavChild[] }
+// mega: 학과 전체를 단과대학별로 펼치는 메가 드롭다운(선배와의 연결)
+type NavItem = { label: string; to: string; children?: NavChild[]; mega?: boolean }
 
 // 로드맵/선배는 하위 메뉴로 묶어 호버 드롭다운으로 노출한다 (피그마 nav)
 const NAV: NavItem[] = [
@@ -14,10 +16,7 @@ const NAV: NavItem[] = [
   {
     label: '선배와의 연결',
     to: '/explore',
-    children: [
-      { label: '선배 탐색', to: '/explore', desc: '학과별 선배를 찾아보세요' },
-      { label: '커피챗 관리', to: '/my', desc: '보낸·받은 커피챗 확인' },
-    ],
+    mega: true,
   },
   {
     label: '커리어 로드맵',
@@ -76,6 +75,105 @@ function Chevron({ open }: { open: boolean }) {
   )
 }
 
+// ── 선배와의 연결 메가 드롭다운 (단과대학별 학과 전체) ──────────────────
+const megaPanelStyle: CSSProperties = {
+  position: 'absolute',
+  top: '100%',
+  left: '50%',
+  transform: 'translateX(-50%)',
+  paddingTop: '10px', // 트리거~패널 브리지
+  zIndex: 60,
+}
+
+const megaInnerStyle: CSSProperties = {
+  backgroundColor: '#FFFFFF',
+  borderRadius: '16px',
+  boxShadow: '0 16px 40px rgba(0,0,0,0.14)',
+  border: '1px solid #F3E8E8',
+  padding: '20px 24px',
+  width: '760px',
+  maxHeight: '70vh',
+  overflowY: 'auto',
+}
+
+const megaGridStyle: CSSProperties = {
+  display: 'grid',
+  gridTemplateColumns: 'repeat(3, 1fr)',
+  gap: '18px 24px',
+}
+
+const collegeHeadStyle: CSSProperties = {
+  fontSize: '13px',
+  fontWeight: 700,
+  color: '#9A001F',
+  marginBottom: '8px',
+  paddingBottom: '6px',
+  borderBottom: '1px solid #F3E8E8',
+}
+
+function DeptLink({ name, onNavigate }: { name: string; onNavigate: () => void }) {
+  const [hover, setHover] = useState(false)
+  return (
+    <Link
+      to="/explore"
+      search={{ dept: name }}
+      onClick={onNavigate}
+      onMouseEnter={() => setHover(true)}
+      onMouseLeave={() => setHover(false)}
+      style={{
+        display: 'block',
+        textDecoration: 'none',
+        fontSize: '13px',
+        fontWeight: 500,
+        color: hover ? '#9A001F' : '#4B4453',
+        padding: '4px 8px',
+        borderRadius: '8px',
+        backgroundColor: hover ? '#FFF8F7' : 'transparent',
+        transition: 'all 0.12s ease',
+      }}
+    >
+      {name}
+    </Link>
+  )
+}
+
+function MegaMenu({ onNavigate }: { onNavigate: () => void }) {
+  const { data: colleges = [], isLoading } = useDepartmentsByCollege()
+  return (
+    <div style={megaPanelStyle}>
+      <div style={megaInnerStyle}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+          <div style={{ fontSize: '15px', fontWeight: 700, color: '#1F1A1A' }}>학과별 선배 찾기</div>
+          <div style={{ display: 'flex', gap: '16px' }}>
+            <Link to="/explore" search={{ dept: undefined }} onClick={onNavigate}
+              style={{ fontSize: '13px', fontWeight: 600, color: '#9A001F', textDecoration: 'none' }}>
+              전체 선배 보기 →
+            </Link>
+            <Link to="/my" onClick={onNavigate}
+              style={{ fontSize: '13px', fontWeight: 600, color: '#78716C', textDecoration: 'none' }}>
+              커피챗 관리
+            </Link>
+          </div>
+        </div>
+        {isLoading ? (
+          <div style={{ fontSize: '13px', color: '#9CA3AF', padding: '12px 0' }}>학과 목록을 불러오는 중…</div>
+        ) : (
+          <div style={megaGridStyle}>
+            {colleges.map((college) => (
+              <div key={college.id}>
+                <div style={collegeHeadStyle}>{college.name}</div>
+                {college.departments.map((d) => (
+                  <DeptLink key={d.id} name={d.name} onNavigate={onNavigate} />
+                ))}
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
 function DropdownItem({ child, onNavigate }: { child: NavChild; onNavigate: () => void }) {
   const [hover, setHover] = useState(false)
   return (
@@ -130,7 +228,7 @@ export default function DashboardNav() {
           <div className="flex items-center gap-[40px] ml-[100px]">
             {NAV.map((item) => {
               const isOpen = openMenu === item.label
-              if (!item.children) {
+              if (!item.children && !item.mega) {
                 return (
                   <Link key={item.label} to={item.to} style={linkStyle}>
                     {item.label}
@@ -148,7 +246,10 @@ export default function DashboardNav() {
                     {item.label}
                     <Chevron open={isOpen} />
                   </Link>
-                  {isOpen && (
+                  {isOpen && item.mega && (
+                    <MegaMenu onNavigate={() => setOpenMenu(null)} />
+                  )}
+                  {isOpen && item.children && (
                     <div style={dropdownPanelStyle}>
                       <div style={dropdownInnerStyle}>
                         {item.children.map((child) => (

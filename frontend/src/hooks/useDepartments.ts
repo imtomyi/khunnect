@@ -46,6 +46,41 @@ export function useDepartments(collegeId: number | null) {
   })
 }
 
+export interface CollegeWithDepartments {
+  id: number
+  name: string
+  departments: { id: number; name: string }[]
+}
+
+// 네비 메가 드롭다운용 — 단과대학별로 학과를 묶어 한 번에 반환
+export function useDepartmentsByCollege() {
+  return useQuery({
+    queryKey: ['departments_by_college'],
+    queryFn: async (): Promise<CollegeWithDepartments[]> => {
+      const [collegesRes, deptsRes] = await Promise.all([
+        supabase.from('colleges').select('id, name').order('id'),
+        supabase.from('departments').select('id, name, college_id').order('id'),
+      ])
+      if (collegesRes.error) throw collegesRes.error
+      if (deptsRes.error) throw deptsRes.error
+
+      const colleges = (collegesRes.data ?? []) as { id: number; name: string }[]
+      const depts = (deptsRes.data ?? []) as { id: number; name: string; college_id: number }[]
+
+      return colleges
+        .map((c) => ({
+          id: c.id,
+          name: c.name,
+          departments: depts
+            .filter((d) => d.college_id === c.id)
+            .map((d) => ({ id: d.id, name: d.name })),
+        }))
+        .filter((c) => c.departments.length > 0)
+    },
+    staleTime: 1000 * 60 * 30, // 30분 — 학과 목록은 거의 변하지 않음
+  })
+}
+
 export function useTracks(departmentId: number | null) {
   return useQuery({
     queryKey: ['tracks', departmentId],
