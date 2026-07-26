@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import type { CSSProperties } from 'react'
 import { Link, useNavigate } from '@tanstack/react-router'
 import Logo from '../Logo'
@@ -7,7 +7,7 @@ import { useDepartmentsByCollege } from '../../hooks/useDepartments'
 import NotificationBell from './NotificationBell'
 
 type NavChild = { label: string; to: string; desc: string }
-// mega: 학과 전체를 단과대학별로 펼치는 메가 드롭다운(선배와의 연결)
+// mega: 학과 전체를 단과대학별로 펼치는 전폭 메가 드롭다운(선배와의 연결)
 type NavItem = { label: string; to: string; children?: NavChild[]; mega?: boolean }
 
 // 로드맵/선배는 하위 메뉴로 묶어 호버 드롭다운으로 노출한다 (피그마 nav)
@@ -75,39 +75,41 @@ function Chevron({ open }: { open: boolean }) {
   )
 }
 
-// ── 선배와의 연결 메가 드롭다운 (단과대학별 학과 전체) ──────────────────
+// ── 선배와의 연결 전폭 메가 드롭다운 (단과대학별 학과 전체) ────────────────
+// 피그마: 제목/유틸 없이 흰 전폭 패널 + 회색 단과대학 헤더 + 진회색 학과 링크(호버 밑줄)
 const megaPanelStyle: CSSProperties = {
   position: 'absolute',
   top: '100%',
-  left: 0, // 트리거 좌측 기준 — 760px 패널이 뷰포트 밖으로 잘리지 않게 중앙정렬 대신 좌측정렬
-  paddingTop: '10px', // 트리거~패널 브리지
+  left: 0,
+  right: 0,
   zIndex: 60,
 }
 
 const megaInnerStyle: CSSProperties = {
   backgroundColor: '#FFFFFF',
-  borderRadius: '16px',
-  boxShadow: '0 16px 40px rgba(0,0,0,0.14)',
-  border: '1px solid #F3E8E8',
-  padding: '20px 24px',
-  width: '760px',
-  maxHeight: '70vh',
-  overflowY: 'auto',
+  boxShadow: '0 12px 28px rgba(0,0,0,0.10)',
+  borderBottom: '1px solid #F1F5F9',
+  paddingTop: '38px',
+  paddingBottom: '44px',
 }
 
 const megaGridStyle: CSSProperties = {
   display: 'grid',
-  gridTemplateColumns: 'repeat(3, 1fr)',
-  gap: '18px 24px',
+  gridTemplateColumns: 'repeat(3, 230px)',
+  columnGap: '40px',
+  rowGap: '36px',
+  justifyContent: 'start',
+  alignItems: 'start',
+  marginLeft: '100px', // 중앙 메뉴(ml-100)와 컬럼 좌측 정렬
+  maxHeight: '72vh',
+  overflowY: 'auto',
 }
 
 const collegeHeadStyle: CSSProperties = {
-  fontSize: '13px',
-  fontWeight: 700,
-  color: '#9A001F',
-  marginBottom: '8px',
-  paddingBottom: '6px',
-  borderBottom: '1px solid #F3E8E8',
+  fontSize: '15px',
+  fontWeight: 500,
+  color: '#8A8A8A',
+  marginBottom: '18px',
 }
 
 function DeptLink({ name, onNavigate }: { name: string; onNavigate: () => void }) {
@@ -121,14 +123,12 @@ function DeptLink({ name, onNavigate }: { name: string; onNavigate: () => void }
       onMouseLeave={() => setHover(false)}
       style={{
         display: 'block',
-        textDecoration: 'none',
-        fontSize: '13px',
-        fontWeight: 500,
-        color: hover ? '#9A001F' : '#4B4453',
-        padding: '4px 8px',
-        borderRadius: '8px',
-        backgroundColor: hover ? '#FFF8F7' : 'transparent',
-        transition: 'all 0.12s ease',
+        fontSize: '15px',
+        fontWeight: 400,
+        color: '#2E2A2A',
+        padding: '7px 0',
+        textDecoration: hover ? 'underline' : 'none',
+        textUnderlineOffset: '3px',
       }}
     >
       {name}
@@ -139,23 +139,10 @@ function DeptLink({ name, onNavigate }: { name: string; onNavigate: () => void }
 function MegaMenu({ onNavigate }: { onNavigate: () => void }) {
   const { data: colleges = [], isLoading } = useDepartmentsByCollege()
   return (
-    <div style={megaPanelStyle}>
-      <div style={megaInnerStyle}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-          <div style={{ fontSize: '15px', fontWeight: 700, color: '#1F1A1A' }}>학과별 선배 찾기</div>
-          <div style={{ display: 'flex', gap: '16px' }}>
-            <Link to="/explore" search={{ dept: undefined }} onClick={onNavigate}
-              style={{ fontSize: '13px', fontWeight: 600, color: '#9A001F', textDecoration: 'none' }}>
-              전체 선배 보기 →
-            </Link>
-            <Link to="/my" onClick={onNavigate}
-              style={{ fontSize: '13px', fontWeight: 600, color: '#78716C', textDecoration: 'none' }}>
-              커피챗 관리
-            </Link>
-          </div>
-        </div>
+    <div style={megaInnerStyle}>
+      <div className="max-w-[1280px] mx-auto w-full px-6">
         {isLoading ? (
-          <div style={{ fontSize: '13px', color: '#9CA3AF', padding: '12px 0' }}>학과 목록을 불러오는 중…</div>
+          <div style={{ marginLeft: '100px', fontSize: '14px', color: '#9CA3AF' }}>학과 목록을 불러오는 중…</div>
         ) : (
           <div style={megaGridStyle}>
             {colleges.map((college) => (
@@ -202,6 +189,17 @@ export default function DashboardNav() {
   const { signOut } = useAuth()
   const navigate = useNavigate()
   const [openMenu, setOpenMenu] = useState<string | null>(null)
+  const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  // 전폭 메가 패널은 트리거와 떨어진 별도 요소라, 이동 중 깜빡임 방지용 지연 닫기
+  const openNow = (label: string) => {
+    if (closeTimer.current) { clearTimeout(closeTimer.current); closeTimer.current = null }
+    setOpenMenu(label)
+  }
+  const closeSoon = () => {
+    if (closeTimer.current) clearTimeout(closeTimer.current)
+    closeTimer.current = setTimeout(() => setOpenMenu(null), 120)
+  }
 
   const handleSignOut = async () => {
     await signOut()
@@ -238,16 +236,13 @@ export default function DashboardNav() {
                 <div
                   key={item.label}
                   style={{ position: 'relative' }}
-                  onMouseEnter={() => setOpenMenu(item.label)}
-                  onMouseLeave={() => setOpenMenu(null)}
+                  onMouseEnter={() => openNow(item.label)}
+                  onMouseLeave={closeSoon}
                 >
                   <Link to={item.to} style={{ ...linkStyle, color: isOpen ? '#9A001F' : '#64748B' }}>
                     {item.label}
                     <Chevron open={isOpen} />
                   </Link>
-                  {isOpen && item.mega && (
-                    <MegaMenu onNavigate={() => setOpenMenu(null)} />
-                  )}
                   {isOpen && item.children && (
                     <div style={dropdownPanelStyle}>
                       <div style={dropdownInnerStyle}>
@@ -303,6 +298,17 @@ export default function DashboardNav() {
             </div>
           </Link>
         </div>
+
+        {/* 선배와의 연결 — 전폭 메가 드롭다운 (nav 바 전체 너비, 트리거와 분리된 별도 요소) */}
+        {openMenu === '선배와의 연결' && (
+          <div
+            style={megaPanelStyle}
+            onMouseEnter={() => openNow('선배와의 연결')}
+            onMouseLeave={closeSoon}
+          >
+            <MegaMenu onNavigate={() => setOpenMenu(null)} />
+          </div>
+        )}
 
       </div>
     </nav>
