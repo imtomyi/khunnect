@@ -95,14 +95,12 @@ const megaInnerStyle: CSSProperties = {
 
 const megaGridStyle: CSSProperties = {
   display: 'grid',
-  gridTemplateColumns: 'repeat(3, 210px)',
-  columnGap: '32px',
-  rowGap: '22px',
-  justifyContent: 'start',
+  // 폭 전체를 채우도록 자동 열 수 — 스크롤 없이 우측 공간까지 활용
+  gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))',
+  columnGap: '24px',
+  rowGap: '24px',
   alignItems: 'start',
-  marginLeft: '100px', // 중앙 메뉴(ml-100)와 컬럼 좌측 정렬
-  maxHeight: '68vh',
-  overflowY: 'auto',
+  marginLeft: '100px', // 중앙 메뉴(ml-100)와 첫 컬럼 좌측 정렬
 }
 
 const collegeHeadStyle: CSSProperties = {
