@@ -89,27 +89,27 @@ const megaInnerStyle: CSSProperties = {
   backgroundColor: '#FFFFFF',
   boxShadow: '0 12px 28px rgba(0,0,0,0.10)',
   borderBottom: '1px solid #F1F5F9',
-  paddingTop: '38px',
-  paddingBottom: '44px',
+  paddingTop: '24px',
+  paddingBottom: '28px',
 }
 
 const megaGridStyle: CSSProperties = {
   display: 'grid',
-  gridTemplateColumns: 'repeat(3, 230px)',
-  columnGap: '40px',
-  rowGap: '36px',
+  gridTemplateColumns: 'repeat(3, 210px)',
+  columnGap: '32px',
+  rowGap: '22px',
   justifyContent: 'start',
   alignItems: 'start',
   marginLeft: '100px', // 중앙 메뉴(ml-100)와 컬럼 좌측 정렬
-  maxHeight: '72vh',
+  maxHeight: '68vh',
   overflowY: 'auto',
 }
 
 const collegeHeadStyle: CSSProperties = {
-  fontSize: '15px',
-  fontWeight: 500,
-  color: '#8A8A8A',
-  marginBottom: '18px',
+  fontSize: '12px',
+  fontWeight: 600,
+  color: '#9A9A9A',
+  marginBottom: '8px',
 }
 
 function DeptLink({ name, onNavigate }: { name: string; onNavigate: () => void }) {
@@ -123,10 +123,10 @@ function DeptLink({ name, onNavigate }: { name: string; onNavigate: () => void }
       onMouseLeave={() => setHover(false)}
       style={{
         display: 'block',
-        fontSize: '15px',
+        fontSize: '13px',
         fontWeight: 400,
         color: '#2E2A2A',
-        padding: '7px 0',
+        padding: '3.5px 0',
         textDecoration: hover ? 'underline' : 'none',
         textUnderlineOffset: '3px',
       }}
